@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../bellezapp"
+		}
+	],
+	"settings": {
+		"powershell.cwd": "bellezapp-backend"
+	}
+}

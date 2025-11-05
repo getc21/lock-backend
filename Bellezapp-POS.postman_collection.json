@@ -1,0 +1,1783 @@
+{
+	"info": {
+		"_postman_id": "bellezapp-pos-api",
+		"name": "Bellezapp POS API",
+		"description": "Colección completa de endpoints para el sistema POS de Bellezapp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@bellezapp.com\",\n  \"password\": \"admin123\",\n  \"firstName\": \"Admin\",\n  \"lastName\": \"Sistema\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Stores",
+			"item": [
+				{
+					"name": "Get All Stores",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					}
+				},
+				{
+					"name": "Create Store",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sucursal Principal\",\n  \"address\": \"Av. Principal 123\",\n  \"phone\": \"555-0100\",\n  \"email\": \"principal@bellezapp.com\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					}
+				},
+				{
+					"name": "Get Store by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/stores/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Store",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sucursal Principal Actualizada\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Store",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/stores/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "Get Category by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Cuidado del Cabello",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Productos para el cuidado capilar",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories"]
+						}
+					}
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Cuidado Capilar Premium",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Productos premium para el cabello",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": [],
+									"description": "Opcional: solo si quieres cambiar la imagen"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Category",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["categories", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Suppliers",
+			"item": [
+				{
+					"name": "Get All Suppliers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/suppliers",
+							"host": ["{{baseUrl}}"],
+							"path": ["suppliers"]
+						}
+					}
+				},
+				{
+					"name": "Get Supplier by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/suppliers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Supplier",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Distribuidora Beauty S.A.",
+									"type": "text"
+								},
+								{
+									"key": "contactName",
+									"value": "Juan Pérez",
+									"type": "text"
+								},
+								{
+									"key": "contactEmail",
+									"value": "juan@beauty.com",
+									"type": "text"
+								},
+								{
+									"key": "contactPhone",
+									"value": "555-1111",
+									"type": "text"
+								},
+								{
+									"key": "address",
+									"value": "Calle Comercio 456",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/suppliers",
+							"host": ["{{baseUrl}}"],
+							"path": ["suppliers"]
+						}
+					}
+				},
+				{
+					"name": "Update Supplier",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "contactPhone",
+									"value": "555-2222",
+									"type": "text"
+								},
+								{
+									"key": "contactEmail",
+									"value": "contacto@beauty.com",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": [],
+									"description": "Opcional: solo si quieres cambiar la imagen"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/suppliers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Supplier",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/suppliers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/products?storeId=&categoryId=&lowStock=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["products"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "categoryId",
+									"value": ""
+								},
+								{
+									"key": "lowStock",
+									"value": "true"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Shampoo Hidratante 500ml",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Shampoo profesional para cabello seco",
+									"type": "text"
+								},
+								{
+									"key": "purchasePrice",
+									"value": "15.00",
+									"type": "text"
+								},
+								{
+									"key": "salePrice",
+									"value": "25.00",
+									"type": "text"
+								},
+								{
+									"key": "weight",
+									"value": "0.5",
+									"type": "text"
+								},
+								{
+									"key": "categoryId",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "supplierId",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "locationId",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "storeId",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "stock",
+									"value": "50",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["products"]
+						}
+					}
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "salePrice",
+									"value": "28.00",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Shampoo profesional premium para cabello seco",
+									"type": "text"
+								},
+								{
+									"key": "foto",
+									"type": "file",
+									"src": [],
+									"description": "Opcional: solo si quieres cambiar la imagen"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Stock",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quantity\": 10,\n  \"operation\": \"add\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/products/:id/stock",
+							"host": ["{{baseUrl}}"],
+							"path": ["products", ":id", "stock"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Customers",
+			"item": [
+				{
+					"name": "Get All Customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customers?search=",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers"],
+							"query": [
+								{
+									"key": "search",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Customer by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Top Customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customers/top?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers", "top"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"María González\",\n  \"phone\": \"555-1234\",\n  \"email\": \"maria@example.com\",\n  \"address\": \"Av. Principal 456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers"]
+						}
+					}
+				},
+				{
+					"name": "Update Customer",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"555-5678\",\n  \"address\": \"Nueva Dirección 789\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Customer",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["customers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get All Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders?storeId=&customerId=&paymentMethod=",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "customerId",
+									"value": ""
+								},
+								{
+									"key": "paymentMethod",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerId\": \"\",\n  \"storeId\": \"\",\n  \"userId\": \"\",\n  \"paymentMethod\": \"efectivo\",\n  \"items\": [\n    {\n      \"productId\": \"\",\n      \"quantity\": 2,\n      \"price\": 25.00\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Sales Report",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/orders/report?storeId=&startDate=&endDate=",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "report"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Cash",
+			"item": [
+				{
+					"name": "Open Cash Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"storeId\": \"\",\n  \"userId\": \"\",\n  \"openingAmount\": 100.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cash/register/open",
+							"host": ["{{baseUrl}}"],
+							"path": ["cash", "register", "open"]
+						}
+					}
+				},
+				{
+					"name": "Close Cash Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"closingAmount\": 850.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cash/register/close/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["cash", "register", "close", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Cash Movements",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/cash/movements?storeId=&startDate=&endDate=",
+							"host": ["{{baseUrl}}"],
+							"path": ["cash", "movements"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Cash Movement",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"storeId\": \"\",\n  \"userId\": \"\",\n  \"type\": \"income\",\n  \"amount\": 50.00,\n  \"description\": \"Ingreso adicional\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cash/movements",
+							"host": ["{{baseUrl}}"],
+							"path": ["cash", "movements"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Discounts",
+			"item": [
+				{
+					"name": "Get All Discounts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/discounts",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts"]
+						}
+					}
+				},
+				{
+					"name": "Get Discount by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/discounts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Active Discounts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/discounts/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts", "active"]
+						}
+					}
+				},
+				{
+					"name": "Create Discount",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Descuento Verano\",\n  \"description\": \"10% de descuento\",\n  \"type\": \"percentage\",\n  \"value\": 10,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/discounts",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts"]
+						}
+					}
+				},
+				{
+					"name": "Update Discount",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"value\": 15,\n  \"isActive\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/discounts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Discount",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/discounts/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["discounts", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Locations",
+			"item": [
+				{
+					"name": "Get All Locations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/locations?storeId=",
+							"host": ["{{baseUrl}}"],
+							"path": ["locations"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Location by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/locations/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["locations", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Location",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Bodega Principal\",\n  \"description\": \"Almacén principal de productos\",\n  \"storeId\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/locations",
+							"host": ["{{baseUrl}}"],
+							"path": ["locations"]
+						}
+					}
+				},
+				{
+					"name": "Update Location",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Bodega Actualizada\",\n  \"description\": \"Nueva descripción\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/locations/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["locations", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Location",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/locations/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["locations", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["roles"]
+						}
+					}
+				},
+				{
+					"name": "Get Role by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["roles", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"vendedor\",\n  \"description\": \"Personal de ventas\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["roles"]
+						}
+					}
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Descripción actualizada\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/roles/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["roles", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/roles/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["roles", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users?role=&isActive=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["users"],
+							"query": [
+								{
+									"key": "role",
+									"value": ""
+								},
+								{
+									"key": "isActive",
+									"value": "true"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"vendedor1\",\n  \"email\": \"vendedor1@bellezapp.com\",\n  \"password\": \"pass123\",\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Pérez\",\n  \"role\": \"vendedor\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Juan Carlos\",\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Assign Store to User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"\",\n  \"storeId\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/assign-store",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "assign-store"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Financial",
+			"item": [
+				{
+					"name": "Get All Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/financial?storeId=&type=&startDate=&endDate=",
+							"host": ["{{baseUrl}}"],
+							"path": ["financial"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "type",
+									"value": ""
+								},
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Financial Report",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/financial/report?storeId=&startDate=&endDate=",
+							"host": ["{{baseUrl}}"],
+							"path": ["financial", "report"],
+							"query": [
+								{
+									"key": "storeId",
+									"value": ""
+								},
+								{
+									"key": "startDate",
+									"value": ""
+								},
+								{
+									"key": "endDate",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"storeId\": \"\",\n  \"type\": \"expense\",\n  \"amount\": 100.00,\n  \"description\": \"Pago de servicios\",\n  \"category\": \"Servicios\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/financial",
+							"host": ["{{baseUrl}}"],
+							"path": ["financial"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
