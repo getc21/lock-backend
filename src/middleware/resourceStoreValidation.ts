@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { Product } from '../models/Product';
 import { Customer } from '../models/Customer';
@@ -41,11 +41,9 @@ export const validateProductStoreAccess = async (
     );
 
     if (!hasAccess) {
-      console.log(`❌ Usuario ${user.username} intentó acceder a producto ${productId} de tienda no autorizada`);
       return next(new AppError('You do not have access to this product', 403));
     }
 
-    console.log(`✅ Usuario ${user.username} tiene acceso al producto ${productId}`);
     next();
   } catch (error) {
     next(error);
@@ -86,11 +84,9 @@ export const validateCustomerStoreAccess = async (
     );
 
     if (!hasAccess) {
-      console.log(`❌ Usuario ${user.username} intentó acceder a cliente ${customerId} de tienda no autorizada`);
       return next(new AppError('You do not have access to this customer', 403));
     }
 
-    console.log(`✅ Usuario ${user.username} tiene acceso al cliente ${customerId}`);
     next();
   } catch (error) {
     next(error);
@@ -131,11 +127,9 @@ export const validateOrderStoreAccess = async (
     );
 
     if (!hasAccess) {
-      console.log(`❌ Usuario ${user.username} intentó acceder a orden ${orderId} de tienda no autorizada`);
       return next(new AppError('You do not have access to this order', 403));
     }
 
-    console.log(`✅ Usuario ${user.username} tiene acceso a la orden ${orderId}`);
     next();
   } catch (error) {
     next(error);
@@ -176,11 +170,9 @@ export const validateLocationStoreAccess = async (
     );
 
     if (!hasAccess) {
-      console.log(`❌ Usuario ${user.username} intentó acceder a ubicación ${locationId} de tienda no autorizada`);
       return next(new AppError('You do not have access to this location', 403));
     }
 
-    console.log(`✅ Usuario ${user.username} tiene acceso a la ubicación ${locationId}`);
     next();
   } catch (error) {
     next(error);

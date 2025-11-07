@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { Customer } from '../models/Customer';
 import { AppError } from '../middleware/errorHandler';
 
@@ -7,8 +7,6 @@ export const getAllCustomers = async (req: Request, res: Response, next: NextFun
     const { search, storeId } = req.query;
     const filter: any = {};
 
-    console.log(`🔍 CustomerController: search=${search}, storeId=${storeId}`);
-    console.log(`🔍 CustomerController: req.user=`, (req as any).user);
 
     // Filtrar por tienda (obligatorio para sistema multi-tienda)
     if (storeId) {
@@ -23,11 +21,9 @@ export const getAllCustomers = async (req: Request, res: Response, next: NextFun
       ];
     }
 
-    console.log(`🔍 CustomerController: filter=`, filter);
 
     const customers = await Customer.find(filter).sort({ createdAt: -1 });
 
-    console.log(`✅ CustomerController: Encontrados ${customers.length} clientes`);
 
     res.json({
       status: 'success',
@@ -35,7 +31,6 @@ export const getAllCustomers = async (req: Request, res: Response, next: NextFun
       data: { customers }
     });
   } catch (error) {
-    console.log(`❌ CustomerController Error:`, error);
     next(error);
   }
 };

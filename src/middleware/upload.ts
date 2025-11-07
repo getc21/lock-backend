@@ -1,4 +1,4 @@
-import multer from 'multer';
+﻿import multer from 'multer';
 import { Request } from 'express';
 
 // Configuración de multer para recibir archivos en memoria
@@ -18,10 +18,8 @@ const fileFilter = (req: Request, file: any, cb: any) => {
   const isImageByExtension = file.originalname && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.originalname);
   
   if (isImageByMime || isImageByExtension) {
-    console.log('✅ File accepted as image');
     cb(null, true);
   } else {
-    console.log('❌ File rejected - not an image:', file.mimetype);
     cb(new Error(`Solo se permiten archivos de imagen. Tipo recibido: ${file.mimetype || 'undefined'}`));
   }
 };

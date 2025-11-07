@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { Category } from '../models/Category';
 import { AppError } from '../middleware/errorHandler';
 import { ImageService } from '../services/image.service';
@@ -36,12 +36,8 @@ export const getCategory = async (req: Request, res: Response, next: NextFunctio
 
 export const createCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('🔄 Creando categoría - Datos recibidos:', req.body);
-    console.log('👤 Usuario autenticado:', (req as any).user);
-    console.log('📁 Archivo recibido:', (req as any).file ? 'Sí' : 'No');
     
     const category = await Category.create(req.body);
-    console.log('✅ Categoría creada exitosamente:', category);
 
     res.status(201).json({
       status: 'success',

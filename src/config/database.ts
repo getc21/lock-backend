@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 
 export const connectDatabase = async (): Promise<void> => {
   try {
@@ -6,7 +6,6 @@ export const connectDatabase = async (): Promise<void> => {
     
     await mongoose.connect(mongoUri);
     
-    console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
     throw error;
@@ -23,7 +22,6 @@ export const connectDatabase = async (): Promise<void> => {
 // export const connectDatabase = async (): Promise<void> => {
 //   try {
 //     await pool.query('SELECT NOW()');
-//     console.log('✅ PostgreSQL connected successfully');
 //   } catch (error) {
 //     console.error('❌ PostgreSQL connection error:', error);
 //     throw error;

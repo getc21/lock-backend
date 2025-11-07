@@ -1,12 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import bcrypt from 'bcryptjs';
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('UserController.getAllUsers - Query params:', req.query);
-    console.log('UserController.getAllUsers - User context:', (req as any).user);
     
     const { role, isActive, storeId } = req.query;
     const filter: any = {};
@@ -15,11 +13,8 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (storeId) filter.stores = storeId;
 
-    console.log('UserController.getAllUsers - Applied filter:', filter);
 
     const users = await User.find(filter).populate('stores', 'name').select('-passwordHash');
-    console.log('UserController.getAllUsers - Found users count:', users.length);
-    console.log('UserController.getAllUsers - Users data:', JSON.stringify(users, null, 2));
 
     const response = {
       status: 'success',
@@ -27,7 +22,6 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
       data: { users }
     };
 
-    console.log('UserController.getAllUsers - Response structure:', JSON.stringify(response, null, 2));
     
     res.json(response);
   } catch (error) {
@@ -104,16 +98,13 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
 
 export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('UserController.deleteUser - Deleting user with ID:', req.params.id);
     
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
-      console.log('UserController.deleteUser - User not found');
       return next(new AppError('User not found', 404));
     }
 
-    console.log('UserController.deleteUser - User deleted successfully:', user.email);
 
     // Cambiar de 204 a 200 para devolver un response body
     res.status(200).json({

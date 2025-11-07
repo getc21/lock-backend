@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { FinancialTransaction } from '../models/FinancialTransaction';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
@@ -166,24 +166,19 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
     if (startDate) dateFilter.$gte = new Date(startDate as string);
     if (endDate) dateFilter.$lte = new Date(endDate as string);
 
-    console.log('📅 Date filter:', dateFilter);
-
     // Obtener productos de la tienda
     const productFilter: any = {};
     if (storeId) productFilter.storeId = storeId;
 
     const products = await Product.find(productFilter).populate('categoryId', 'name');
-    console.log(`📦 Products found: ${products.length}`);
 
     // Obtener órdenes del período SIN populate para evitar problemas
     const orderFilter: any = {};
     if (storeId) orderFilter.storeId = storeId;
     if (Object.keys(dateFilter).length > 0) orderFilter.createdAt = dateFilter;
 
-    console.log('🔍 Order filter:', orderFilter);
     
     const orders = await Order.find(orderFilter).lean(); // Usar lean() para mejor performance
-    console.log(`📝 Orders found: ${orders.length}`);
 
     // Debug: Ver estructura de la primera orden
     if (orders.length > 0) {
@@ -199,7 +194,6 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
     }
 
     const rotationAnalysis = products.map(product => {
-      console.log(`🧮 Analyzing product: ${product.name} (${product._id})`);
       
       const productSales = orders.reduce((total, order) => {
         const productItems = order.items.filter(item => {
@@ -209,7 +203,6 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
           const match = itemProductId === productId;
           
           if (match) {
-            console.log(`  ✅ Found match in order ${order._id}: ${item.quantity} units`);
           }
           
           return match;
@@ -217,7 +210,6 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
         return total + productItems.reduce((sum, item) => sum + item.quantity, 0);
       }, 0);
 
-      console.log(`  📊 ${product.name}: ${productSales} total sold`);
 
       const averageStock = product.stock || 1; // Evitar división por cero
       const rotationRate = averageStock > 0 ? productSales / averageStock : 0;

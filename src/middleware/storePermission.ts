@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { AppError } from './errorHandler';
 import { AuthRequest } from './auth';
@@ -36,11 +36,9 @@ export const validateStoreAccess = async (
     );
 
     if (!hasAccess) {
-      console.log(`❌ Usuario ${user.username} intentó acceder a tienda ${storeId} sin permisos`);
       return next(new AppError('You do not have access to this store', 403));
     }
 
-    console.log(`✅ Usuario ${user.username} tiene acceso a tienda ${storeId}`);
     next();
   } catch (error) {
     next(error);
@@ -57,24 +55,20 @@ export const validateStoreAccessIfProvided = async (
     const userRole = req.user?.role;
     const storeId = req.query.storeId || req.params.storeId || req.body.storeId;
     
-    console.log(`🔍 StorePermission: Usuario ${userId}, Rol ${userRole}, StoreId ${storeId}`);
     
     // Los admins pueden acceder a todas las tiendas
     if (userRole === 'admin') {
-      console.log(`✅ StorePermission: Admin tiene acceso completo`);
       return next();
     }
     
     // Si no se proporciona storeId, continuar sin validar (por ahora para diagnóstico)
     if (!storeId) {
-      console.log(`⚠️ StorePermission: No se proporcionó storeId, continuando sin validar`);
       return next();
     }
 
     // Si se proporciona storeId, validar acceso
     return validateStoreAccess(req, res, next);
   } catch (error) {
-    console.log(`❌ StorePermission Error: ${error}`);
     next(error);
   }
 };

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import cloudinary from '../config/cloudinary';
 import { Readable } from 'stream';
 
@@ -63,8 +63,6 @@ export class ImageService {
 export const processImageUpload = (folderName: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log(`🖼️ Procesando imagen para carpeta: ${folderName}`);
-      console.log('📁 Archivo recibido:', (req as any).file ? 'Sí' : 'No');
       
       if ((req as any).file) {
         console.log('📊 Detalles del archivo:', {
@@ -75,7 +73,6 @@ export const processImageUpload = (folderName: string) => {
         
         const imageUrl = await ImageService.uploadImage((req as any).file, folderName);
         req.body.foto = imageUrl; // Agregar la URL al body
-        console.log('✅ Imagen subida exitosamente:', imageUrl);
       }
       next();
     } catch (error) {

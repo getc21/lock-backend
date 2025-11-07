@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler';
 
@@ -18,11 +18,8 @@ export const authenticateToken = (
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log('🔑 Middleware auth - Header:', authHeader);
-  console.log('🎫 Token extraído:', token ? `${token.substring(0, 10)}...` : 'No token');
 
   if (!token) {
-    console.log('❌ No se encontró token');
     return next(new AppError('Access token is required', 401));
   }
 
@@ -30,10 +27,8 @@ export const authenticateToken = (
     const secret = process.env.JWT_SECRET || 'your-secret-key';
     const decoded = jwt.verify(token, secret) as any;
     req.user = decoded;
-    console.log('✅ Token válido - Usuario:', decoded.email);
     next();
   } catch (error) {
-    console.log('❌ Token inválido:', error);
     return next(new AppError('Invalid or expired token', 403));
   }
 };
