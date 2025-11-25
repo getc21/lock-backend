@@ -3,8 +3,6 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IProduct extends Document {
   name: string;
   description?: string;
-  sku?: string;
-  barcode?: string;
   purchasePrice: number;
   salePrice: number;
   weight?: string;
@@ -29,18 +27,6 @@ const productSchema = new Schema<IProduct>(
     description: {
       type: String,
       trim: true
-    },
-    sku: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true // Permite valores null/undefined pero asegura unicidad cuando existe
-    },
-    barcode: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true // Permite valores null/undefined pero asegura unicidad cuando existe
     },
     purchasePrice: {
       type: Number,
@@ -99,7 +85,5 @@ const productSchema = new Schema<IProduct>(
 productSchema.index({ name: 1, storeId: 1 });
 productSchema.index({ categoryId: 1, storeId: 1 });
 productSchema.index({ stock: 1 });
-productSchema.index({ barcode: 1 });
-productSchema.index({ sku: 1 });
 
 export const Product = mongoose.model<IProduct>('Product', productSchema);

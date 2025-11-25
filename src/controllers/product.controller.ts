@@ -152,13 +152,9 @@ export const searchProduct = async (req: Request, res: Response, next: NextFunct
     }
 
     // Buscar producto por:
-    // 1. Código de barras exacto
-    // 2. SKU exacto  
-    // 3. Nombre que contenga el query (case insensitive)
+    // 1. Nombre que contenga el query (case insensitive)
     const product = await Product.findOne({
       $or: [
-        { barcode: query },
-        { sku: query },
         { name: { $regex: query, $options: 'i' } }
       ]
     })
