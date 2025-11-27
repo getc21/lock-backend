@@ -29,5 +29,6 @@ router.patch(
 );
 router.delete('/:id', validateProductStoreAccess, productController.deleteProduct);
 router.patch('/:id/stock', validateProductStoreAccess, productController.updateStock);
+router.post('/:id/stock', validateProductStoreAccess, productController.updateStock);
 
 export default router;
