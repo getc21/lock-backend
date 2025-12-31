@@ -1,6 +1,7 @@
 ﻿import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/User';
 import { Product } from '../models/Product';
+import { ProductStore } from '../models/ProductStore';
 import { Customer } from '../models/Customer';
 import { Order } from '../models/Order';
 import { Location } from '../models/Location';
@@ -40,9 +41,9 @@ export const validateProductStoreAccess = async (
       storeId.toString() === product.storeId.toString()
     );
 
-    if (!hasAccess) {
-      return next(new AppError('You do not have access to this product', 403));
-    }
+     if (!hasAccess) {
+       return next(new AppError('You do not have access to this product', 403));
+     }
 
     next();
   } catch (error) {

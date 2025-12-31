@@ -2,6 +2,7 @@
 import { FinancialTransaction } from '../models/FinancialTransaction';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
+import { ProductStore } from '../models/ProductStore';
 import { AppError } from '../middleware/errorHandler';
 
 export const getAllTransactions = async (req: Request, res: Response, next: NextFunction) => {
@@ -166,13 +167,17 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
     if (startDate) dateFilter.$gte = new Date(startDate as string);
     if (endDate) dateFilter.$lte = new Date(endDate as string);
 
-    // Obtener productos de la tienda
-    const productFilter: any = {};
-    if (storeId) productFilter.storeId = storeId;
+    // Obtener ProductStore para la tienda (con datos de stock)
+    const productStoreFilter: any = {};
+    if (storeId) productStoreFilter.storeId = storeId;
 
-    const products = await Product.find(productFilter).populate('categoryId', 'name');
+    const productStores = await ProductStore.find(productStoreFilter)
+      .populate({
+        path: 'productId',
+        populate: 'categoryId'
+      });
 
-    // Obtener órdenes del período SIN populate para evitar problemas
+    // Obtener órdenes del período SIN populate para mejor performance
     const orderFilter: any = {};
     if (storeId) orderFilter.storeId = storeId;
     if (Object.keys(dateFilter).length > 0) orderFilter.createdAt = dateFilter;
@@ -193,32 +198,27 @@ export const getInventoryRotationAnalysis = async (req: Request, res: Response, 
       });
     }
 
-    const rotationAnalysis = products.map(product => {
+    const rotationAnalysis = productStores.map(productStore => {
+      const product = productStore.productId as any;
       
       const productSales = orders.reduce((total, order) => {
         const productItems = order.items.filter(item => {
-          // Ambos como string para comparación segura
+          // Comparar IDs como strings para seguridad
           const itemProductId = item.productId.toString();
           const productId = (product._id as any).toString();
-          const match = itemProductId === productId;
-          
-          if (match) {
-          }
-          
-          return match;
+          return itemProductId === productId;
         });
         return total + productItems.reduce((sum, item) => sum + item.quantity, 0);
       }, 0);
 
-
-      const averageStock = product.stock || 1; // Evitar división por cero
+      const averageStock = productStore.stock || 1; // Evitar división por cero
       const rotationRate = averageStock > 0 ? productSales / averageStock : 0;
       
       return {
         productId: product._id,
         productName: product.name,
-        category: (product.categoryId as any)?.name || 'Sin categoría',
-        currentStock: product.stock,
+        category: product.categoryId?.name || 'Sin categoría',
+        currentStock: productStore.stock,
         totalSold: productSales,
         rotationRate: Math.round(rotationRate * 100) / 100,
         daysToSellStock: averageStock > 0 && productSales > 0 

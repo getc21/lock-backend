@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
+import { ProductStore } from '../models/ProductStore';
 import { Customer } from '../models/Customer';
 import { CashMovement } from '../models/CashMovement';
 import { AppError } from '../middleware/errorHandler';
@@ -59,19 +60,30 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
   try {
     const { items, customerId, storeId, paymentMethod, userId } = req.body;
 
-    // Verificar y actualizar stock
+    // Verificar y actualizar stock en ProductStore
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
         return next(new AppError(`Product ${item.productId} not found`, 404));
       }
-      if (product.stock < item.quantity) {
+
+      // Buscar el ProductStore para esta tienda
+      const productStore = await ProductStore.findOne({
+        productId: item.productId,
+        storeId
+      });
+
+      if (!productStore) {
+        return next(new AppError(`Product not available in this store`, 404));
+      }
+
+      if (productStore.stock < item.quantity) {
         return next(new AppError(`Insufficient stock for ${product.name}`, 400));
       }
       
-      // Actualizar stock
-      product.stock -= item.quantity;
-      await product.save();
+      // Actualizar stock en ProductStore
+      productStore.stock -= item.quantity;
+      await productStore.save();
     }
 
     // Calcular total

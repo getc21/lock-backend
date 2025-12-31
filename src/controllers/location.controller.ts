@@ -40,13 +40,19 @@ export const getLocation = async (req: Request, res: Response, next: NextFunctio
 
 export const createLocation = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('=== CREATE LOCATION DEBUG ===');
+    console.log(`Request body: ${JSON.stringify(req.body)}`);
+    
     const location = await Location.create(req.body);
+
+    console.log(`✅ Location created: ${location._id}`);
 
     res.status(201).json({
       status: 'success',
       data: { location }
     });
   } catch (error) {
+    console.error('❌ Error creating location:', error);
     next(error);
   }
 };

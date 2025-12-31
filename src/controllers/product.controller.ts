@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Product } from '../models/Product';
 import { ProductStore } from '../models/ProductStore';
 import { User } from '../models/User';
+import { Store } from '../models/Store';
 import { AppError } from '../middleware/errorHandler';
 import { ImageService } from '../services/image.service';
 
@@ -19,10 +20,10 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
         path: 'productId',
         populate: [
           { path: 'categoryId', select: 'name' },
-          { path: 'supplierId', select: 'name' },
-          { path: 'locationId', select: 'name' }
+          { path: 'supplierId', select: 'name' }
         ]
-      });
+      })
+      .populate('locationId', 'name'); // Ubicación específica de esta tienda
 
     // Filtrar por categoryId o supplierId si se proporciona
     let filtered = productStores;
@@ -40,13 +41,27 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
     }
 
     // Combinar datos de Product y ProductStore
-    const products = filtered.map(ps => ({
-      ...((ps.productId as any) || {}),
-      stock: ps.stock,
-      salePrice: ps.salePrice,
-      purchasePrice: ps.purchasePrice,
-      productStoreId: ps._id
-    }));
+    const products = filtered.map(ps => {
+      const productData = (ps.productId as any) || {};
+      return {
+        _id: productData._id,
+        name: productData.name,
+        description: productData.description,
+        categoryId: productData.categoryId,
+        supplierId: productData.supplierId,
+        storeId: productData.storeId,
+        locationId: (ps.locationId as any)?.name || ps.locationId, // Ubicación de ProductStore
+        foto: productData.foto,
+        weight: productData.weight,
+        expiryDate: productData.expiryDate,
+        stock: ps.stock,
+        salePrice: ps.salePrice,
+        purchasePrice: ps.purchasePrice,
+        productStoreId: ps._id,
+        createdAt: productData.createdAt,
+        updatedAt: productData.updatedAt
+      };
+    });
 
     res.json({
       status: 'success',
@@ -105,42 +120,78 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
   try {
     const { storeId, salePrice, purchasePrice, stock } = req.body;
     const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+
+    // Debug logs
+    console.log('=== CREATE PRODUCT DEBUG ===');
+    console.log(`Request user object: ${JSON.stringify((req as any).user)}`);
+    console.log(`Extracted userId: ${userId}`);
+    console.log(`User role: ${userRole}`);
+    console.log(`Received storeId: ${storeId}`);
 
     if (!storeId || !userId) {
+      console.log(`❌ Missing data - storeId: ${storeId}, userId: ${userId}`);
       return next(new AppError('Store ID and user ID are required', 400));
     }
 
     // Obtener el usuario y sus tiendas asociadas
     const user = await User.findById(userId);
     if (!user) {
+      console.log(`❌ User not found with ID: ${userId}`);
       return next(new AppError('User not found', 404));
     }
     
-    if (!user.stores.includes(storeId)) {
+    console.log(`✅ User found: ${user.username}`);
+    console.log(`User stores: ${user.stores.map(s => s.toString()).join(', ')}`);
+    
+    // Los admins pueden crear productos en cualquier tienda
+    const hasAccess = userRole === 'admin' || user.stores.includes(storeId);
+    
+    if (!hasAccess) {
+      console.log(`❌ User doesn't have access to store ${storeId}`);
       return next(new AppError('You do not have access to this store', 403));
     }
 
-    // Debug: log user stores
-    console.log(`Creating product for user ${userId}`);
-    console.log(`User stores: ${user.stores.map(s => s.toString()).join(', ')}`);
-    console.log(`Current store: ${storeId}`);
+    console.log(`✅ User has access to store ${storeId}`);
 
-    // Crear el producto genérico (sin precios ni stock)
+    // Crear el producto genérico (sin precios, stock, ni ubicación)
     const product = await Product.create({
       name: req.body.name,
       description: req.body.description,
       categoryId: req.body.categoryId,
       supplierId: req.body.supplierId,
-      locationId: req.body.locationId,
+      storeId: storeId, // La tienda que crea el producto
       foto: req.body.foto,
       weight: req.body.weight,
       expiryDate: req.body.expiryDate
     });
 
+    console.log(`✅ Product created: ${product._id}`);
+
     // Crear entradas ProductStore para TODAS las tiendas del usuario
-    const productStores = [];
+    const productStores: any[] = [];
     
-    for (const userStoreId of user.stores) {
+    // Si el usuario es admin, crear para TODAS las tiendas del sistema
+    // Si no, crear solo para las tiendas del usuario
+    let storesToCreate: any[] = [];
+    
+    if (userRole === 'admin') {
+      // Obtener todas las tiendas del sistema
+      const allStores = await Store.find({});
+      storesToCreate = allStores.map(s => s._id);
+      console.log(`👨‍💼 Admin creating product for ALL ${storesToCreate.length} stores`);
+    } else if (user.stores.length > 0) {
+      storesToCreate = user.stores;
+      console.log(`👤 User creating product for their ${storesToCreate.length} stores`);
+    } else {
+      // Si no es admin y no tiene tiendas, solo para la tienda actual
+      storesToCreate = [storeId];
+      console.log(`⚠️ User has no stores, creating for current store only`);
+    }
+    
+    console.log(`📦 Creating ProductStore entries for ${storesToCreate.length} stores`);
+    
+    for (const userStoreId of storesToCreate) {
       const isCurrentStore = userStoreId.toString() === storeId;
       
       // Si es la tienda actual, usar los datos completos
@@ -148,14 +199,17 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       const productStore = await ProductStore.create({
         productId: product._id,
         storeId: userStoreId,
+        locationId: isCurrentStore ? req.body.locationId : req.body.locationId, // Usar la misma locationId (cada tienda debe actualizarla después)
         stock: isCurrentStore ? stock : 0,
         salePrice: isCurrentStore ? salePrice : 0,
         purchasePrice: isCurrentStore ? purchasePrice : 0
       });
       
-      console.log(`Created ProductStore for store ${userStoreId.toString()} - isCurrentStore: ${isCurrentStore}`);
+      console.log(`✅ Created ProductStore for store ${userStoreId.toString()}`);
       productStores.push(productStore);
     }
+
+    console.log(`✅ Product creation completed successfully`);
 
     res.status(201).json({
       status: 'success',
@@ -165,7 +219,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       }
     });
   } catch (error) {
-    console.error('Error creating product:', error);
+    console.error('❌ Error creating product:', error);
     next(error);
   }
 };

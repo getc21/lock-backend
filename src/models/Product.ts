@@ -5,7 +5,7 @@ export interface IProduct extends Document {
   description?: string;
   categoryId: mongoose.Types.ObjectId;
   supplierId: mongoose.Types.ObjectId;
-  locationId: mongoose.Types.ObjectId;
+  storeId: mongoose.Types.ObjectId; // Tienda que creó el producto
   foto?: string;
   weight?: string;
   expiryDate?: Date;
@@ -38,10 +38,10 @@ const productSchema = new Schema<IProduct>(
       ref: 'Supplier',
       required: true
     },
-    locationId: {
+    storeId: {
       type: Schema.Types.ObjectId,
-      ref: 'Location',
-      required: true
+      ref: 'Store',
+      required: true // La tienda que creó el producto
     },
     foto: {
       type: String
@@ -55,12 +55,10 @@ const productSchema = new Schema<IProduct>(
     timestamps: true
   }
 );
-  }
-);
 
 // Index para búsquedas eficientes
-productSchema.index({ name: 1, storeId: 1 });
-productSchema.index({ categoryId: 1, storeId: 1 });
-productSchema.index({ stock: 1 });
+productSchema.index({ name: 1 });
+productSchema.index({ categoryId: 1 });
+productSchema.index({ storeId: 1 }); // Para filtrar por tienda
 
 export const Product = mongoose.model<IProduct>('Product', productSchema);

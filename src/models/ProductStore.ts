@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IProductStore extends Document {
   productId: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
+  locationId: mongoose.Types.ObjectId; // Ubicación específica de esta tienda
   stock: number;
   salePrice: number;
   purchasePrice: number;
@@ -21,6 +22,11 @@ const productStoreSchema = new Schema<IProductStore>(
       type: Schema.Types.ObjectId,
       ref: 'Store',
       required: true
+    },
+    locationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Location',
+      required: true // Ubicación específica de esta tienda
     },
     stock: {
       type: Number,
