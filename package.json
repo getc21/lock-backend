@@ -7,7 +7,9 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest"
+    "test": "jest",
+    "seed": "ts-node src/scripts/seedDatabase.ts",
+    "clean": "ts-node src/scripts/cleanDatabase.ts"
   },
   "keywords": [
     "beauty",

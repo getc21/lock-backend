@@ -130,11 +130,12 @@ export const getFinancialReport = async (req: Request, res: Response, next: Next
         report.totalExpense += t.amount;
       }
 
-      if (t.category) {
-        if (!report.byCategory[t.category]) {
-          report.byCategory[t.category] = 0;
+      const categoryName = t.categoryId ? (t.categoryId as any).name : 'Sin categoría';
+      if (categoryName) {
+        if (!report.byCategory[categoryName]) {
+          report.byCategory[categoryName] = 0;
         }
-        report.byCategory[t.category] += t.type === 'income' ? t.amount : -t.amount;
+        report.byCategory[categoryName] += t.type === 'income' ? t.amount : -t.amount;
       }
     });
 
@@ -265,21 +266,36 @@ export const getProfitabilityAnalysis = async (req: Request, res: Response, next
     if (storeId) orderFilter.storeId = storeId;
     if (Object.keys(dateFilter).length > 0) orderFilter.createdAt = dateFilter;
 
-    const orders = await Order.find(orderFilter).populate('items.productId');
+    const orders = await Order.find(orderFilter).lean();
 
     const productProfitability: Record<string, any> = {};
 
+    // Obtener todos los productos para acceder a su nombre
+    const products = await Product.find({}).lean();
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
+    // Obtener todos los ProductStore para acceder a purchasePrice
+    const productStores = await ProductStore.find({}).lean();
+    const productStoreMap = new Map(
+      productStores.map(ps => [
+        `${ps.storeId.toString()}-${ps.productId.toString()}`,
+        ps
+      ])
+    );
+
     orders.forEach(order => {
-      order.items.forEach(item => {
+      (order as any).items.forEach((item: any) => {
         if (item.productId) {
-          const productId = (item.productId as any)._id.toString();
-          const product = item.productId as any;
+          const productId = item.productId.toString();
+          const product = productMap.get(productId);
+          const storeId = (order as any).storeId.toString();
+          const productStore = productStoreMap.get(`${storeId}-${productId}`);
           
           if (!productProfitability[productId]) {
             productProfitability[productId] = {
               productId: productId,
-              productName: product.name,
-              category: product.categoryId?.name || 'Sin categoría',
+              productName: product?.name || 'Producto desconocido',
+              category: 'Categoría',
               totalRevenue: 0,
               totalCost: 0,
               totalQuantity: 0,
@@ -288,7 +304,8 @@ export const getProfitabilityAnalysis = async (req: Request, res: Response, next
           }
 
           const revenue = item.quantity * item.price;
-          const cost = item.quantity * (product.purchasePrice || 0);
+          const purchasePrice = productStore?.purchasePrice || 0;
+          const cost = item.quantity * purchasePrice;
           
           productProfitability[productId].totalRevenue += revenue;
           productProfitability[productId].totalCost += cost;

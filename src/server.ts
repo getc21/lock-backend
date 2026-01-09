@@ -22,6 +22,7 @@ import discountRoutes from './routes/discount.routes';
 import orderRoutes from './routes/order.routes';
 import cashRoutes from './routes/cash.routes';
 import financialRoutes from './routes/financial.routes';
+import expenseRoutes from './routes/expense.routes';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +62,7 @@ app.use('/api/discounts', discountRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cash', cashRoutes);
 app.use('/api/financial', financialRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 // Error handling
 app.use(errorHandler);
