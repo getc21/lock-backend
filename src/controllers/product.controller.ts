@@ -406,7 +406,10 @@ export const searchProduct = async (req: Request, res: Response, next: NextFunct
       return next(new AppError('Product not found', 404));
     }
 
-    // Si se proporciona storeId, verificar que el producto existe en esa tienda
+    const productObj = product.toObject();
+    let salePrice = 0;
+
+    // Si se proporciona storeId, obtener el precio de venta de esa tienda
     if (storeId) {
       try {
         const { Types } = require('mongoose');
@@ -420,15 +423,29 @@ export const searchProduct = async (req: Request, res: Response, next: NextFunct
         if (!productStore || productStore.stock === 0) {
           return next(new AppError('Producto no disponible en esta tienda', 404));
         }
+
+        salePrice = productStore.salePrice;
       } catch (error) {
         console.error('Error buscando ProductStore:', error);
         return next(new AppError('Error validando disponibilidad del producto', 500));
       }
+    } else {
+      // Si no se proporciona storeId, obtener el precio de la primera tienda que lo tenga
+      const productStore = await ProductStore.findOne({
+        productId: product._id
+      });
+      
+      if (productStore) {
+        salePrice = productStore.salePrice;
+      }
     }
+
+    // Crear objeto con el precio de venta incluido
+    const productWithPrice = { ...productObj, salePrice };
 
     res.json({
       status: 'success',
-      data: { product }
+      data: { product: productWithPrice }
     });
   } catch (error) {
     console.error('Error en searchProduct:', error);
