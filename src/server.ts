@@ -5,6 +5,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
 import { connectDatabase } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -24,15 +25,20 @@ import cashRoutes from './routes/cash.routes';
 import financialRoutes from './routes/financial.routes';
 import expenseRoutes from './routes/expense.routes';
 
+// Import accounting and audit routes
+import returnsRoutes from './routes/returns.routes';
+import auditRoutes from './routes/audit.routes';
+import quotationRoutes from './routes/quotation.routes';
+
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT: number = parseInt(process.env.PORT || '3000', 10);
 
 // CORS Configuration
 const corsOptions = {
   origin: '*', // Temporarily allow all origins for debugging
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma'],
   exposedHeaders: ['x-access-token', 'x-auth-token'],
   maxAge: 3600,
   optionsSuccessStatus: 200
@@ -45,8 +51,17 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(morgan('dev'));
+app.use(compression()); // ✅ Compresión GZIP para respuestas
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Deshabilitar caché para API - siempre retornar datos frescos
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 // Routes
 app.get('/health', (req, res) => {
@@ -69,6 +84,11 @@ app.use('/api/cash', cashRoutes);
 app.use('/api/financial', financialRoutes);
 app.use('/api/expenses', expenseRoutes);
 
+// Professional Accounting & Audit Routes
+app.use('/api/returns', returnsRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/quotations', quotationRoutes);
+
 // Error handling
 app.use(errorHandler);
 
@@ -76,7 +96,9 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDatabase();
+    console.log(`✓ Attempting to start server on port ${PORT}...`);
     app.listen(PORT, () => {
+      console.log(`✓ Server successfully running on http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

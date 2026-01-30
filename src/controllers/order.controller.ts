@@ -8,7 +8,7 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { storeId, customerId, startDate, endDate, paymentMethod } = req.query;
+    const { storeId, customerId, startDate, endDate, paymentMethod, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (storeId) filter.storeId = storeId;
@@ -20,15 +20,31 @@ export const getAllOrders = async (req: Request, res: Response, next: NextFuncti
       if (endDate) filter.orderDate.$lte = new Date(endDate as string);
     }
 
-    const orders = await Order.find(filter)
-      .populate('customerId', 'name phone')
-      .populate('storeId', 'name')
-      .populate('items.productId', 'name salePrice')
-      .sort({ orderDate: -1 });
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50)); // Max 100 items
+    const skip = (pageNum - 1) * limitNum;
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .populate('customerId', 'name phone')
+        .populate('storeId', 'name')
+        .populate('items.productId', 'name salePrice')
+        .sort({ orderDate: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ Usar .lean() para mejor rendimiento
+      Order.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: orders.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { orders }
     });
   } catch (error) {

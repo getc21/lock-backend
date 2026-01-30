@@ -5,7 +5,7 @@ import { AppError } from '../middleware/errorHandler';
 export const getAllDiscounts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     
-    const { isActive, storeId } = req.query;
+    const { isActive, storeId, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (isActive !== undefined) filter.isActive = isActive === 'true';
@@ -13,15 +13,30 @@ export const getAllDiscounts = async (req: Request, res: Response, next: NextFun
     // ⭐ FILTRAR POR TIENDA (solo si se proporciona)
     if (storeId) {
       filter.storeId = storeId;
-    } else {
     }
 
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50)); // Max 100 items
+    const skip = (pageNum - 1) * limitNum;
 
-    const discounts = await Discount.find(filter).populate('storeId', 'name');
+    const [discounts, total] = await Promise.all([
+      Discount.find(filter)
+        .populate('storeId', 'name')
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ Usar .lean() para mejor rendimiento
+      Discount.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: discounts.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { discounts }
     });
   } catch (error) {

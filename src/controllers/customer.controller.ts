@@ -4,9 +4,8 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllCustomers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { search, storeId } = req.query;
+    const { search, storeId, page = 1, limit = 50 } = req.query;
     const filter: any = {};
-
 
     // Filtrar por tienda (obligatorio para sistema multi-tienda)
     if (storeId) {
@@ -21,13 +20,28 @@ export const getAllCustomers = async (req: Request, res: Response, next: NextFun
       ];
     }
 
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50)); // Max 100 items
+    const skip = (pageNum - 1) * limitNum;
 
-    const customers = await Customer.find(filter).sort({ createdAt: -1 });
-
+    const [customers, total] = await Promise.all([
+      Customer.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ Usar .lean() para mejor rendimiento
+      Customer.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: customers.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { customers }
     });
   } catch (error) {

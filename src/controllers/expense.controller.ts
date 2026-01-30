@@ -67,10 +67,6 @@ export const getExpenseReport = async (req: Request, res: Response, next: NextFu
       return next(new AppError('storeId is required', 400));
     }
 
-    console.log('� [REPORT] === INICIANDO REPORTE ===');
-    console.log('📊 [REPORT] storeId recibido:', storeId);
-    console.log('📊 [REPORT] tipo de storeId:', typeof storeId);
-    console.log('📊 [REPORT] period:', period);
 
     let dateFilter: any = {};
     const now = new Date();
@@ -105,23 +101,13 @@ export const getExpenseReport = async (req: Request, res: Response, next: NextFu
       return next(new AppError('period or startDate/endDate is required', 400));
     }
 
-    console.log('📊 [REPORT] Filtro de fecha:', dateFilter);
-
     // Convertir storeId a ObjectId
     let storeObjectId: mongoose.Types.ObjectId;
     try {
       storeObjectId = new mongoose.Types.ObjectId(storeId as string);
-      console.log('✅ [REPORT] storeId convertido a ObjectId:', storeObjectId);
     } catch (error) {
       return next(new AppError(`Invalid storeId format: ${storeId}`, 400));
     }
-
-    // Obtener TODOS los gastos primero para ver
-    const allExpenses = await FinancialTransaction.find({
-      type: 'expense',
-      date: dateFilter,
-    });
-    console.log('📊 [REPORT] TOTAL gastos en BD (todas las tiendas):', allExpenses.length);
 
     // Obtener gastos con filtro de storeId
     const expenses = await FinancialTransaction.find({
@@ -131,11 +117,6 @@ export const getExpenseReport = async (req: Request, res: Response, next: NextFu
     })
       .populate('categoryId', 'name icon')
       .sort({ date: -1 });
-
-    console.log('🟡 [REPORT] Gastos encontrados para storeId:', expenses.length);
-    if (expenses.length > 0) {
-      console.log('📊 [REPORT] Primer gasto storeId:', expenses[0].storeId);
-    }
 
     // Agrupar por categoría
     const byCategory: any = {};
@@ -194,13 +175,10 @@ export const compareExpensePeriods = async (req: Request, res: Response, next: N
       return next(new AppError('storeId is required', 400));
     }
 
-    console.log('📊 [COMPARE] Comparación solicitada para storeId:', storeId);
-
     // Convertir storeId a ObjectId
     let storeObjectId: mongoose.Types.ObjectId;
     try {
       storeObjectId = new mongoose.Types.ObjectId(storeId as string);
-      console.log('✅ [COMPARE] storeId convertido a ObjectId:', storeObjectId);
     } catch (error) {
       return next(new AppError(`Invalid storeId format: ${storeId}`, 400));
     }
@@ -233,9 +211,6 @@ export const compareExpensePeriods = async (req: Request, res: Response, next: N
 
     const period1 = await getExpensesSummary(period1Start as string, period1End as string);
     const period2 = await getExpensesSummary(period2Start as string, period2End as string);
-
-    console.log('📊 [COMPARE] Período 1:', period1.count, 'gastos');
-    console.log('📊 [COMPARE] Período 2:', period2.count, 'gastos');
 
     const difference = period2.total - period1.total;
     const percentageChange = period1.total > 0 ? ((difference / period1.total) * 100).toFixed(2) : '0';

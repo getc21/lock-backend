@@ -8,23 +8,33 @@ import { ImageService } from '../services/image.service';
 
 export const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { storeId, categoryId, supplierId } = req.query;
+    const { storeId, categoryId, supplierId, page = 1, limit = 50 } = req.query;
     
     if (!storeId) {
       return next(new AppError('Store ID is required', 400));
     }
 
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50)); // Max 100 items
+    const skip = (pageNum - 1) * limitNum;
+
     // Encontrar todos los ProductStore para la tienda actual (excluyendo eliminados)
-    const productStores = await ProductStore.find({ storeId })
-      .populate({
-        path: 'productId',
-        match: { isDeleted: { $ne: true } }, // Excluir productos eliminados
-        populate: [
-          { path: 'categoryId', select: 'name' },
-          { path: 'supplierId', select: 'name' }
-        ]
-      })
-      .populate('locationId'); // Obtener el documento completo de Location
+    const [productStores, total] = await Promise.all([
+      ProductStore.find({ storeId })
+        .populate({
+          path: 'productId',
+          match: { isDeleted: { $ne: true } }, // Excluir productos eliminados
+          populate: [
+            { path: 'categoryId', select: 'name' },
+            { path: 'supplierId', select: 'name' }
+          ]
+        })
+        .populate('locationId')
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ Usar .lean() para mejor rendimiento
+      ProductStore.countDocuments({ storeId })
+    ]);
 
     // Filtrar por productId null (producto eliminado) y por categoryId o supplierId si se proporciona
     let filtered = productStores.filter(ps => ps.productId !== null);
@@ -69,6 +79,12 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
     res.json({
       status: 'success',
       results: products.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { products }
     });
   } catch (error) {
