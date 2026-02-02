@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { CashRegister } from '../models/CashRegister';
 import { CashMovement } from '../models/CashMovement';
+import { FinancialTransaction } from '../models/FinancialTransaction';
 import { AppError } from '../middleware/errorHandler';
 
 export const openCashRegister = async (req: Request, res: Response, next: NextFunction) => {
@@ -93,17 +94,40 @@ export const getCashMovements = async (req: Request, res: Response, next: NextFu
     if (storeId) filter.storeId = storeId;
     if (type) filter.type = type;
     if (startDate || endDate) {
-      filter.date = {};
-      if (startDate) filter.date.$gte = new Date(startDate as string);
-      if (endDate) filter.date.$lte = new Date(endDate as string);
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate as string);
+      if (endDate) filter.createdAt.$lte = new Date(endDate as string);
     }
 
-    const movements = await CashMovement.find(filter).sort({ date: -1 });
+    // Obtener movimientos de caja manuales
+    const cashMovements = await CashMovement.find(filter).sort({ createdAt: -1 });
+    
+    // Obtener transacciones financieras (incluye inversiones en inventario)
+    const financialFilter: any = {};
+    if (storeId) financialFilter.storeId = storeId;
+    if (type) financialFilter.type = type;
+    if (startDate || endDate) {
+      financialFilter.createdAt = {};
+      if (startDate) financialFilter.createdAt.$gte = new Date(startDate as string);
+      if (endDate) financialFilter.createdAt.$lte = new Date(endDate as string);
+    }
+    
+    const financialTransactions = await FinancialTransaction.find(financialFilter).sort({ createdAt: -1 });
+    
+    // Combinar ambas y ordenar por fecha
+    const allMovements = [
+      ...cashMovements.map(m => ({ ...m.toObject(), _type: 'cash' })),
+      ...financialTransactions.map(f => ({ ...f.toObject(), _type: 'financial' }))
+    ].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      return dateB - dateA;
+    });
 
     res.json({
       status: 'success',
-      results: movements.length,
-      data: { movements }
+      results: allMovements.length,
+      data: { movements: allMovements }
     });
   } catch (error) {
     next(error);

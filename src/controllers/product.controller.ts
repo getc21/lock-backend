@@ -363,7 +363,7 @@ export const deleteProduct = async (req: Request, res: Response, next: NextFunct
 
 export const updateStock = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { quantity, operation, storeId } = req.body; // operation: 'add' or 'subtract'
+    const { quantity, operation, storeId, purchasePrice } = req.body; // operation: 'add' or 'subtract'
     
     if (!storeId) {
       return next(new AppError('Store ID is required', 400));
@@ -379,8 +379,35 @@ export const updateStock = async (req: Request, res: Response, next: NextFunctio
       return next(new AppError('Product not found in this store', 404));
     }
 
+    // Registrar stock anterior
+    const previousStock = productStore.stock;
+    let investmentAmount = 0;
+
     if (operation === 'add') {
       productStore.stock += quantity;
+      
+      // Si es 'add' y hay purchasePrice, registrar como transacción financiera (inversión)
+      if (purchasePrice && purchasePrice > 0) {
+        investmentAmount = quantity * purchasePrice;
+        
+        // Crear transacción financiera de inversión en inventario
+        const FinancialTransaction = require('../models/FinancialTransaction').FinancialTransaction;
+        await FinancialTransaction.create({
+          storeId,
+          type: 'expense', // Es una salida de dinero
+          category: 'inventory_investment', // Nueva categoría para inversión en inventario
+          description: `Inversión en inventario - ${(productStore.productId as any).name}`,
+          amount: investmentAmount,
+          quantity: quantity,
+          unitPrice: purchasePrice,
+          productId: req.params.id,
+          relatedProductStore: productStore._id,
+          recordedBy: (req as any).user?.id,
+          createdAt: new Date(),
+        });
+        
+        console.log(`✅ Transacción de inversión registrada: ${investmentAmount} Bs. para ${quantity} unidades`);
+      }
     } else if (operation === 'subtract') {
       if (productStore.stock < quantity) {
         return next(new AppError('Insufficient stock', 400));
@@ -392,7 +419,11 @@ export const updateStock = async (req: Request, res: Response, next: NextFunctio
 
     res.json({
       status: 'success',
-      data: { productStore }
+      data: { 
+        productStore,
+        investmentAmount: investmentAmount,
+        message: investmentAmount > 0 ? `Inversión de ${investmentAmount} Bs. registrada` : undefined
+      }
     });
   } catch (error) {
     next(error);

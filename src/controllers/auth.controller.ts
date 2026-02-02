@@ -28,12 +28,11 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       stores: stores || []
     });
 
-    // Generate token
+    // Generate token (sin expiración - válido indefinidamente)
     const secret: Secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
-      secret,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as SignOptions
+      secret
     );
 
     res.status(201).json({
@@ -75,12 +74,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     user.lastLoginAt = new Date();
     await user.save();
 
-    // Generate token
+    // Generate token (sin expiración - válido indefinidamente)
     const secret: Secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role, username: user.username },
-      secret,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as SignOptions
+      secret
     );
 
     res.json({
