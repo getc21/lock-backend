@@ -9,7 +9,7 @@ export interface IOrderItem {
 export interface IOrder extends Document {
   orderDate: Date;
   totalOrden: number;
-  paymentMethod: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro';
+  paymentMethod: 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'otro';
   customerId?: mongoose.Types.ObjectId;
   storeId: mongoose.Types.ObjectId;
   items: IOrderItem[];
@@ -53,7 +53,7 @@ const orderSchema = new Schema<IOrder>(
     },
     paymentMethod: {
       type: String,
-      enum: ['efectivo', 'tarjeta', 'transferencia', 'otro'],
+      enum: ['efectivo', 'tarjeta', 'transferencia', 'qr', 'otro'],
       default: 'efectivo'
     },
     customerId: {

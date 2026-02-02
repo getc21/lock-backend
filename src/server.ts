@@ -97,7 +97,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     console.log(`✓ Attempting to start server on port ${PORT}...`);
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✓ Server successfully running on http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
