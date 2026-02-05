@@ -19,6 +19,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Uploaded images (local storage)
+uploads/
+uploads/**/*
+
 # IDE
 .vscode/
 .idea/

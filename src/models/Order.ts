@@ -14,6 +14,8 @@ export interface IOrder extends Document {
   storeId: mongoose.Types.ObjectId;
   items: IOrderItem[];
   userId?: mongoose.Types.ObjectId;
+  receiptNumber?: string;
+  status?: 'pending' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +71,16 @@ const orderSchema = new Schema<IOrder>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User'
+    },
+    receiptNumber: {
+      type: String,
+      sparse: true,
+      index: true
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'completed', 'cancelled'],
+      default: 'completed'
     }
   },
   {

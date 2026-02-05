@@ -6,6 +6,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import path from 'path';
 import { connectDatabase } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -35,31 +36,76 @@ const PORT: number = parseInt(process.env.PORT || '3000', 10);
 
 // CORS Configuration
 const corsOptions = {
-  origin: '*', // Temporarily allow all origins for debugging
-  credentials: false,
+  origin: function (origin, callback) {
+    // En desarrollo, permitir cualquier origen
+    // En producción, especificar orígenes permitidos
+    if (process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://10.0.2.2:3000',
+        'http://10.0.2.2:3001',
+      ];
+      if (allowedOrigins.includes(origin || '')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma'],
   exposedHeaders: ['x-access-token', 'x-auth-token'],
-  maxAge: 3600,
+  maxAge: 86400, // 24 horas
   optionsSuccessStatus: 200
 };
 
 // Middleware - CORS MUST come first, before helmet
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
-}));
-app.use(morgan('dev'));
-app.use(compression()); // ✅ Compresión GZIP para respuestas
+
+// Helmet deshabilitado en desarrollo (más rápido)
+if (process.env.NODE_ENV === 'production') {
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  }));
+}
+
+// Morgan: usar 'short' en lugar de 'dev' para menos logging
+app.use(morgan(process.env.NODE_ENV === 'development' ? 'short' : 'combined'));
+
+// Compresión deshabilitada en desarrollo local (más rápido)
+if (process.env.NODE_ENV === 'production') {
+  app.use(compression());
+}
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Deshabilitar caché para API - siempre retornar datos frescos
+// ⭐ SERVIR ARCHIVOS ESTÁTICOS (uploads)
+const uploadsPath = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsPath));
+console.log(`📁 Uploads directory: ${uploadsPath}`);
+
+// Permitir caché en GET (más rápido en desarrollo)
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  } else {
+    // En desarrollo, permitir caché corta en GET
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, max-age=30'); // 30 segundos
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
   next();
 });
 

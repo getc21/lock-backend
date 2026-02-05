@@ -8,6 +8,8 @@ export interface ICashMovement extends Document {
   orderId?: mongoose.Types.ObjectId;
   userId?: string;
   storeId: mongoose.Types.ObjectId;
+  saleType?: 'cash' | 'qr'; // 'cash' = venta en efectivo, 'qr' = venta por transferencia/tarjeta
+  paymentMethod?: string; // 'efectivo', 'qr', 'tarjeta' - para tracking
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,16 @@ const cashMovementSchema = new Schema<ICashMovement>(
       type: Schema.Types.ObjectId,
       ref: 'Store',
       required: true
+    },
+    saleType: {
+      type: String,
+      enum: ['cash', 'qr'],
+      default: 'cash' // Por defecto es en efectivo
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['efectivo', 'qr', 'tarjeta'],
+      default: 'efectivo'
     }
   },
   {

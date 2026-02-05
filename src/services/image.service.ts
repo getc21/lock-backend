@@ -1,58 +1,75 @@
 ﻿import { Request, Response, NextFunction } from 'express';
-import cloudinary from '../config/cloudinary';
-import { Readable } from 'stream';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
- * Servicio para subir imágenes a Cloudinary
+ * Servicio para guardar imágenes localmente
  */
 export class ImageService {
-  /**
-   * Sube una imagen a Cloudinary
-   * @param file - Archivo de multer
-   * @param folder - Carpeta en Cloudinary (products, categories, suppliers, etc.)
-   * @returns URL de la imagen subida
-   */
-  static async uploadImage(file: any, folder: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: `bellezapp/${folder}`,
-          transformation: [
-            { width: 800, height: 800, crop: 'limit' }, // Redimensionar máximo 800x800
-            { quality: 'auto' }, // Calidad automática
-            { fetch_format: 'auto' } // Formato automático (WebP en navegadores compatibles)
-          ]
-        },
-        (error: any, result: any) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result!.secure_url);
-          }
-        }
-      );
+  private static uploadsDir = path.join(process.cwd(), 'uploads');
 
-      // Convertir el buffer a stream
-      const bufferStream = Readable.from(file.buffer);
-      bufferStream.pipe(uploadStream);
-    });
+  /**
+   * Asegura que el directorio de uploads existe
+   */
+  static ensureUploadDirExists(folder: string): void {
+    const folderPath = path.join(this.uploadsDir, folder);
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
   }
 
   /**
-   * Elimina una imagen de Cloudinary
+   * Guarda una imagen localmente
+   * @param file - Archivo de multer
+   * @param folder - Carpeta de destino (products, categories, suppliers, etc.)
+   * @returns URL de la imagen guardada
+   */
+  static async uploadImage(file: any, folder: string): Promise<string> {
+    try {
+      // Crear directorio si no existe
+      this.ensureUploadDirExists(folder);
+
+      // Generar nombre único con timestamp
+      const timestamp = Date.now();
+      const extension = path.extname(file.originalname);
+      const filename = `${timestamp}${extension}`;
+
+      // Ruta completa del archivo
+      const folderPath = path.join(this.uploadsDir, folder);
+      const filePath = path.join(folderPath, filename);
+
+      // Guardar archivo
+      await fs.promises.writeFile(filePath, file.buffer);
+
+      // Retornar URL relativa
+      const apiUrl = process.env.API_URL || 'http://localhost:3000';
+      return `${apiUrl}/uploads/${folder}/${filename}`;
+    } catch (error) {
+      console.error('❌ Error guardando imagen:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Elimina una imagen del servidor
    * @param imageUrl - URL de la imagen a eliminar
    */
   static async deleteImage(imageUrl: string): Promise<void> {
     try {
-      // Extraer el public_id de la URL
+      // Extraer nombre del archivo de la URL
       const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1].split('.')[0];
+      const filename = urlParts[urlParts.length - 1];
       const folder = urlParts[urlParts.length - 2];
-      const publicId = `bellezapp/${folder}/${fileName}`;
 
-      await cloudinary.uploader.destroy(publicId);
+      const filePath = path.join(this.uploadsDir, folder, filename);
+
+      // Verificar que el archivo existe antes de eliminarlo
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath);
+        console.log(`✅ Imagen eliminada: ${filePath}`);
+      }
     } catch (error) {
-      console.error('Error deleting image from Cloudinary:', error);
+      console.error('❌ Error eliminando imagen:', error);
     }
   }
 }

@@ -41,10 +41,10 @@ export const getAllQuotations = async (req: Request, res: Response, next: NextFu
 export const getQuotation = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const quotation = await Quotation.findById(req.params.id)
-      .populate('customerId')
-      .populate('storeId')
-      .populate('items.productId')
-      .populate('discountId');
+      .populate('customerId', 'name phone email loyaltyPoints')
+      .populate('storeId', 'name')
+      .populate('items.productId', 'name salePrice price description')
+      .populate('discountId', 'name type value');
 
     if (!quotation) {
       return next(new AppError('Quotation not found', 404));
@@ -91,9 +91,9 @@ export const createQuotation = async (req: Request, res: Response, next: NextFun
     });
 
     // Poblar datos relacionados
-    await quotation.populate('customerId', 'name phone email points');
+    await quotation.populate('customerId', 'name phone email loyaltyPoints');
     await quotation.populate('storeId', 'name');
-    await quotation.populate('items.productId', 'name salePrice');
+    await quotation.populate('items.productId', 'name salePrice price description');
     await quotation.populate('discountId', 'name type value');
 
     res.json({

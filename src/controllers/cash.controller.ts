@@ -136,11 +136,35 @@ export const getCashMovements = async (req: Request, res: Response, next: NextFu
 
 export const addCashMovement = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const movement = await CashMovement.create(req.body);
+    const { type, amount, description, cashRegisterId } = req.body;
+    const storeId = req.body.storeId || (req as any).user?.storeId;
+
+    if (!storeId) {
+      return next(new AppError('Store ID is required', 400));
+    }
+
+    // Map frontend types to backend types
+    const typeMap: { [key: string]: string } = {
+      'entrada': 'income',
+      'salida': 'expense',
+      'income': 'income',
+      'expense': 'expense'
+    };
+
+    const mappedType = typeMap[type] || type;
+
+    const movement = await CashMovement.create({
+      type: mappedType,
+      amount,
+      description,
+      storeId,
+      cashRegisterId,
+      date: new Date()
+    });
 
     res.status(201).json({
       status: 'success',
-      data: { movement }
+      data: movement
     });
   } catch (error) {
     next(error);

@@ -1,10 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { Order } from '../models/Order';
 import { Product } from '../models/Product';
 import { ProductStore } from '../models/ProductStore';
 import { Customer } from '../models/Customer';
 import { CashMovement } from '../models/CashMovement';
+import { CashRegister } from '../models/CashRegister';
+import { Receipt } from '../models/Receipt';
 import { AppError } from '../middleware/errorHandler';
+import { createAuditLog, AuditActionType } from '../utils/auditService';
+import { generateReceiptNumber } from '../utils/receiptService';
 
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -35,6 +40,10 @@ export const getAllOrders = async (req: Request, res: Response, next: NextFuncti
         .lean(), // ✅ Usar .lean() para mejor rendimiento
       Order.countDocuments(filter)
     ]);
+
+    console.log('📦 getAllOrders - Filter:', JSON.stringify(filter));
+    console.log('📦 getAllOrders - Found orders:', orders.length);
+    console.log('📦 getAllOrders - Total:', total);
 
     res.json({
       status: 'success',
@@ -74,16 +83,20 @@ export const getOrder = async (req: Request, res: Response, next: NextFunction) 
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { items, customerId, storeId, paymentMethod, userId } = req.body;
+    const { items, customerId, storeId, paymentMethod } = req.body;
+    const userId = (req as any).user?.id; // Extraer userId del token JWT
 
-    // Verificar y actualizar stock en ProductStore
+    if (!userId) {
+      return next(new AppError('User ID not found in token', 401));
+    }
+
+    if (!items || items.length === 0) {
+      return next(new AppError('Order must contain at least one item', 400));
+    }
+
+    // Verificar stock ANTES de crear la orden
+    const stockValidation: { [key: string]: number } = {};
     for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return next(new AppError(`Product ${item.productId} not found`, 404));
-      }
-
-      // Buscar el ProductStore para esta tienda
       const productStore = await ProductStore.findOne({
         productId: item.productId,
         storeId
@@ -94,59 +107,162 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       }
 
       if (productStore.stock < item.quantity) {
-        return next(new AppError(`Insufficient stock for ${product.name}`, 400));
+        return next(new AppError(`Insufficient stock for product`, 400));
       }
-      
-      // Actualizar stock en ProductStore
-      productStore.stock -= item.quantity;
-      await productStore.save();
+
+      stockValidation[item.productId] = item.quantity;
     }
 
     // Calcular total
     const totalOrden = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
 
-    // Crear orden
+    // PASO 1: Crear orden
     const order = await Order.create({
       orderDate: new Date(),
       totalOrden,
       paymentMethod: paymentMethod || 'efectivo',
-      customerId,
+      customerId: customerId || null,
       storeId,
       items,
-      userId
+      userId,
+      receiptNumber: undefined // Se asignará después
     });
 
-    // Registrar movimiento de caja
+    const orderId = order._id;
+
+    // PASO 2: Generar número de comprobante
+    const receiptNumber = await generateReceiptNumber(storeId as string);
+
+    // PASO 3: Actualizar stock en ProductStore
+    for (const item of items) {
+      const result = await ProductStore.findOneAndUpdate(
+        {
+          productId: item.productId,
+          storeId
+        },
+        {
+          $inc: { stock: -item.quantity }
+        },
+        { new: true }
+      );
+
+      if (!result) {
+        return next(new AppError(`Failed to update stock for product`, 500));
+      }
+
+      // Verificar que el stock no sea negativo
+      if (result.stock < 0) {
+        return next(new AppError(`Stock became negative`, 500));
+      }
+    }
+
+    // PASO 4: Crear movimiento de caja
+    const saleType = (paymentMethod === 'qr' || paymentMethod === 'tarjeta') ? 'qr' : 'cash';
     await CashMovement.create({
       date: new Date(),
       type: 'sale',
       amount: totalOrden,
-      description: `Venta #${order._id}`,
-      orderId: order._id,
+      description: `Venta ${saleType === 'qr' ? 'por QR' : 'en efectivo'} #${receiptNumber}`,
+      orderId,
       userId,
-      storeId
+      storeId,
+      saleType: saleType,
+      paymentMethod: paymentMethod || 'efectivo'
     });
 
-    // Actualizar estadísticas del cliente
+    // PASO 5: Crear comprobante/recibo
+    const receipt = await Receipt.create({
+      receiptNumber,
+      orderId,
+      storeId,
+      userId: userId.toString(), // Convertir ObjectId a string
+      amount: totalOrden,
+      paymentMethod: paymentMethod || 'efectivo',
+      customerId: customerId || null,
+      items: items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.price * item.quantity
+      })),
+      status: 'issued',
+      issuedAt: new Date() // Explícitamente establecer la fecha de emisión
+    });
+
+    // PASO 6: Actualizar orden con número de comprobante
+    await Order.findByIdAndUpdate(orderId, { receiptNumber });
+
+    // PASO 7: Actualizar estadísticas del cliente
     if (customerId) {
-      // Calcular puntos de lealtad (1 punto por cada peso gastado, redondear hacia abajo)
       const loyaltyPointsEarned = Math.floor(totalOrden);
-      
-      await Customer.findByIdAndUpdate(customerId, {
-        $inc: { 
-          totalOrders: 1, 
-          totalSpent: totalOrden,
-          loyaltyPoints: loyaltyPointsEarned
-        },
-        lastPurchase: new Date()
-      });
+
+      await Customer.findByIdAndUpdate(
+        customerId,
+        {
+          $inc: {
+            totalOrders: 1,
+            totalSpent: totalOrden,
+            loyaltyPoints: loyaltyPointsEarned
+          },
+          lastPurchase: new Date()
+        }
+      );
     }
+
+    // PASO 8: Crear entrada de auditoría
+    await createAuditLog({
+      action: AuditActionType.ORDER_CREATED,
+      entity: 'Order',
+      entityId: orderId,
+      userId,
+      storeId: new mongoose.Types.ObjectId(storeId),
+      changes: {
+        after: {
+          orderId: orderId.toString(),
+          receiptNumber,
+          totalOrden,
+          itemCount: items.length,
+          paymentMethod,
+          customerId: customerId || 'N/A'
+        }
+      },
+      metadata: {
+        stockUpdates: stockValidation
+      },
+      status: 'success'
+    });
 
     res.status(201).json({
       status: 'success',
-      data: { order }
+      data: {
+        order,
+        receipt,
+        receiptNumber
+      }
     });
-  } catch (error) {
+
+  } catch (error: any) {
+    // Registrar el error en auditoría
+    try {
+      const { storeId, userId } = req.body;
+      if (storeId && userId) {
+        await createAuditLog({
+          action: AuditActionType.ORDER_CREATED,
+          entity: 'Order',
+          entityId: new mongoose.Types.ObjectId(),
+          userId,
+          storeId: new mongoose.Types.ObjectId(storeId),
+          changes: {
+            after: { error: error.message }
+          },
+          status: 'failed',
+          errorMessage: error.message
+        });
+      }
+    } catch (auditError) {
+      console.error('Error logging audit:', auditError);
+    }
+
     next(error);
   }
 };

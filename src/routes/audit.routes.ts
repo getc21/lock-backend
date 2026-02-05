@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import auditController from '../controllers/financial-audit.controller';
+import * as auditController from '../controllers/audit.controller';
+import financialAuditController from '../controllers/financial-audit.controller';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
@@ -9,19 +10,25 @@ const router = Router();
  * Rutas para reportes, reconciliación y trazabilidad
  */
 
+// ⭐ RUTAS DE COMPROBANTES/RECIBOS
+// Nota: Las rutas más específicas deben ir primero
+router.get('/receipts/stats', authenticateToken, auditController.getReceiptStats);
+router.get('/receipts/date-range', authenticateToken, auditController.getReceiptsByDateRange);
+router.get('/receipts/:receiptNumber/:storeId', authenticateToken, auditController.getReceipt);
+
 // Reconciliación contable
-router.get('/audit/reconciliation', authenticateToken, auditController.getFinancialReconciliation);
+router.get('/reconciliation', authenticateToken, financialAuditController.getFinancialReconciliation);
 
 // Reporte de cambios y devoluciones
-router.get('/audit/returns-and-refunds', authenticateToken, auditController.getReturnsAndRefundsReport);
+router.get('/returns-and-refunds', authenticateToken, financialAuditController.getReturnsAndRefundsReport);
 
 // Reporte completo de auditoría
-router.get('/audit/trail', authenticateToken, auditController.getComprehensiveAuditTrail);
+router.get('/trail', authenticateToken, financialAuditController.getComprehensiveAuditTrail);
 
 // Reporte de integridad contable
-router.get('/audit/integrity', authenticateToken, auditController.getAccountingIntegrityReport);
+router.get('/integrity', authenticateToken, financialAuditController.getAccountingIntegrityReport);
 
 // Exportar datos de auditoría
-router.get('/audit/export', authenticateToken, auditController.exportAuditDataForExternal);
+router.get('/export', authenticateToken, financialAuditController.exportAuditDataForExternal);
 
 export default router;
