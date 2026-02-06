@@ -60,6 +60,7 @@ const corsOptions = {
       const allowedOrigins = [
         'https://naturalmarkets.net',
         'https://www.naturalmarkets.net',
+        'https://api.naturalmarkets.net',        // El backend también puede ser origen
         'http://localhost:3000',
         'http://localhost:3001',
         'http://127.0.0.1:3000',
@@ -67,9 +68,12 @@ const corsOptions = {
         'http://10.0.2.2:3000', // Android emulator
         'http://10.0.2.2:3001',
       ];
-      if (allowedOrigins.includes(origin || '')) {
+      
+      // Permitir si: 1) está en la lista, 2) es undefined (mismo origen), o 3) es localhost
+      if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
         callback(null, true);
       } else {
+        console.warn(`⚠️ CORS bloqueado para origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     }
