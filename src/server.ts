@@ -1,5 +1,5 @@
 ﻿import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config(); // Busca .env en el directorio actual (donde se ejecuta pm2/npm start)
 
 import express, { Application } from 'express';
 import cors from 'cors';
