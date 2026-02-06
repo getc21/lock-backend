@@ -1,12 +1,27 @@
 ﻿import dotenv from 'dotenv';
-dotenv.config(); // Busca .env en el directorio actual (donde se ejecuta pm2/npm start)
+import path from 'path';
+
+// Cargar .env desde la raíz del proyecto (no desde dist/)
+// Intenta primero .env.production, luego .env
+const envPath = path.resolve(__dirname, '../.env');
+const envProductionPath = path.resolve(__dirname, '../.env.production');
+
+// Intentar cargar .env.production primero
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config({ path: envProductionPath });
+}
+
+// Luego cargar .env (sobrescribe si existe)
+dotenv.config({ path: envPath });
+
+console.log(`📝 Loading environment: .env from ${envPath}`);
+console.log(`📝 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import path from 'path';
 import { connectDatabase } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 
