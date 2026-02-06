@@ -5,11 +5,32 @@ import { ImageService } from '../services/image.service';
 
 export const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const categories = await Category.find();
+    const { storeId, page = 1, limit = 100 } = req.query;
+    const filter: any = {};
+
+    if (storeId) filter.storeId = storeId;
+
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit as string) || 100)); // Categories can be larger
+    const skip = (pageNum - 1) * limitNum;
+
+    const [categories, total] = await Promise.all([
+      Category.find(filter)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ .lean() para mejor rendimiento
+      Category.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: categories.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { categories }
     });
   } catch (error) {

@@ -5,11 +5,29 @@ import { ImageService } from '../services/image.service';
 
 export const getAllSuppliers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const suppliers = await Supplier.find();
+    const { page = 1, limit = 100 } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit as string) || 100));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [suppliers, total] = await Promise.all([
+      Supplier.find()
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ .lean() para mejor rendimiento
+      Supplier.countDocuments({})
+    ]);
 
     res.json({
       status: 'success',
       results: suppliers.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { suppliers }
     });
   } catch (error) {

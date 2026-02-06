@@ -7,7 +7,7 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllTransactions = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { storeId, type, category, startDate, endDate } = req.query;
+    const { storeId, type, category, startDate, endDate, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (storeId) filter.storeId = storeId;
@@ -20,13 +20,29 @@ export const getAllTransactions = async (req: Request, res: Response, next: Next
       if (endDate) filter.date.$lte = new Date(endDate as string);
     }
 
-    const transactions = await FinancialTransaction.find(filter)
-      .populate('storeId', 'name')
-      .sort({ date: -1 });
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [transactions, total] = await Promise.all([
+      FinancialTransaction.find(filter)
+        .populate('storeId', 'name')
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ .lean() para mejor rendimiento
+      FinancialTransaction.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: transactions.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { transactions }
     });
   } catch (error) {

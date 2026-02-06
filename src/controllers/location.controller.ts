@@ -4,16 +4,33 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllLocations = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { storeId } = req.query;
+    const { storeId, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (storeId) filter.storeId = storeId;
 
-    const locations = await Location.find(filter).populate('storeId', 'name');
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [locations, total] = await Promise.all([
+      Location.find(filter)
+        .populate('storeId', 'name')
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ .lean() para mejor rendimiento
+      Location.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: locations.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { locations }
     });
   } catch (error) {

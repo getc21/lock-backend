@@ -444,28 +444,38 @@ class ReturnsAndRefundsController {
         if (startDate) filter.requestedAt.$gte = new Date(startDate as string);
         if (endDate) filter.requestedAt.$lte = new Date(endDate as string);
       }
-      
-      const returns = await ReturnRequest.find(filter)
-        .populate('orderId')
-        .populate('customerId')
-        .populate('requestedBy', 'name email')
-        .populate('approvedBy', 'name email')
-        .populate('processedBy', 'name email')
-        .sort({ requestedAt: -1 });
+
+      const pageNum = Math.max(1, parseInt((req.query.page as string) || '1'));
+      const limitNum = Math.min(100, Math.max(1, parseInt((req.query.limit as string) || '50')));
+      const skip = (pageNum - 1) * limitNum;
+
+      const [returns, total] = await Promise.all([
+        ReturnRequest.find(filter)
+          .populate('orderId')
+          .populate('customerId')
+          .populate('requestedBy', 'name email')
+          .populate('approvedBy', 'name email')
+          .populate('processedBy', 'name email')
+          .sort({ requestedAt: -1 })
+          .skip(skip)
+          .limit(limitNum)
+          .lean(), // ✅ .lean() para mejor rendimiento
+        ReturnRequest.countDocuments(filter)
+      ]);
       
       const summary = {
         total: returns.length,
-        totalRefundAmount: returns.reduce((sum, r) => sum + r.totalRefundAmount, 0),
+        totalRefundAmount: returns.reduce((sum: number, r: any) => sum + r.totalRefundAmount, 0),
         byStatus: {
-          pending: returns.filter(r => r.status === ReturnStatus.PENDING).length,
-          approved: returns.filter(r => r.status === ReturnStatus.APPROVED).length,
-          completed: returns.filter(r => r.status === ReturnStatus.COMPLETED).length,
-          rejected: returns.filter(r => r.status === ReturnStatus.REJECTED).length
+          pending: returns.filter((r: any) => r.status === ReturnStatus.PENDING).length,
+          approved: returns.filter((r: any) => r.status === ReturnStatus.APPROVED).length,
+          completed: returns.filter((r: any) => r.status === ReturnStatus.COMPLETED).length,
+          rejected: returns.filter((r: any) => r.status === ReturnStatus.REJECTED).length
         },
         byType: {
-          return: returns.filter(r => r.type === ReturnType.RETURN).length,
-          exchange: returns.filter(r => r.type === ReturnType.EXCHANGE).length,
-          partial: returns.filter(r => r.type === ReturnType.PARTIAL_REFUND).length
+          return: returns.filter((r: any) => r.type === ReturnType.RETURN).length,
+          exchange: returns.filter((r: any) => r.type === ReturnType.EXCHANGE).length,
+          partial: returns.filter((r: any) => r.type === ReturnType.PARTIAL_REFUND).length
         }
       };
       

@@ -5,25 +5,38 @@ import bcrypt from 'bcryptjs';
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    
-    const { role, isActive, storeId } = req.query;
+    const { role, isActive, storeId, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     if (storeId) filter.stores = storeId;
 
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+    const skip = (pageNum - 1) * limitNum;
 
-    const users = await User.find(filter).populate('stores', 'name').select('-passwordHash');
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .populate('stores', 'name')
+        .select('-passwordHash')
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ .lean() para mejor rendimiento
+      User.countDocuments(filter)
+    ]);
 
-    const response = {
+    res.json({
       status: 'success',
       results: users.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { users }
-    };
-
-    
-    res.json(response);
+    });
   } catch (error) {
     console.error('UserController.getAllUsers - Error:', error);
     next(error);

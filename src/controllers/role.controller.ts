@@ -4,7 +4,8 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllRoles = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const roles = await Role.find();
+    // Roles son pocos (típicamente 5-10), pero aún queremos buena práctica
+    const roles = await Role.find().lean(); // ✅ .lean() para mejor rendimiento
 
     res.json({
       status: 'success',

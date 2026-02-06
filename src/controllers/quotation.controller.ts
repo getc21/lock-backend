@@ -9,7 +9,7 @@ import { AppError } from '../middleware/errorHandler';
 
 export const getAllQuotations = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { storeId, customerId, status, startDate, endDate } = req.query;
+    const { storeId, customerId, status, startDate, endDate, page = 1, limit = 50 } = req.query;
     const filter: any = {};
 
     if (storeId) filter.storeId = storeId;
@@ -21,16 +21,33 @@ export const getAllQuotations = async (req: Request, res: Response, next: NextFu
       if (endDate) filter.quotationDate.$lte = new Date(endDate as string);
     }
 
-    const quotations = await Quotation.find(filter)
-      .populate('customerId', 'name phone email loyaltyPoints')
-      .populate('storeId', 'name')
-      .populate('items.productId', 'name salePrice')
-      .populate('discountId', 'name type value')
-      .sort({ quotationDate: -1 });
+    // Paginación obligatoria
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50)); // Max 100 items
+    const skip = (pageNum - 1) * limitNum;
+
+    const [quotations, total] = await Promise.all([
+      Quotation.find(filter)
+        .populate('customerId', 'name phone email loyaltyPoints')
+        .populate('storeId', 'name')
+        .populate('items.productId', 'name salePrice')
+        .populate('discountId', 'name type value')
+        .sort({ quotationDate: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(), // ✅ LEAN para mejor rendimiento
+      Quotation.countDocuments(filter)
+    ]);
 
     res.json({
       status: 'success',
       results: quotations.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      },
       data: { quotations }
     });
   } catch (error) {
@@ -90,16 +107,18 @@ export const createQuotation = async (req: Request, res: Response, next: NextFun
       status: 'pending'
     });
 
-    // Poblar datos relacionados
-    await quotation.populate('customerId', 'name phone email loyaltyPoints');
-    await quotation.populate('storeId', 'name');
-    await quotation.populate('items.productId', 'name salePrice price description');
-    await quotation.populate('discountId', 'name type value');
+    // Paralelizar populates en lugar de secuenciales
+    const populatedQuotation = await Quotation.findById(quotation._id)
+      .populate('customerId', 'name phone email loyaltyPoints')
+      .populate('storeId', 'name')
+      .populate('items.productId', 'name salePrice price description')
+      .populate('discountId', 'name type value')
+      .lean(); // ✅ LEAN para no cargar objetos Mongoose pesados
 
     res.json({
       status: 'success',
       message: 'Quotation created successfully',
-      data: { quotation }
+      data: { quotation: populatedQuotation }
     });
   } catch (error) {
     next(error);
