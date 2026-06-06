@@ -78,9 +78,14 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
       return next(new AppError('Category not found', 404));
     }
 
-    // Si hay una nueva imagen y existía una anterior, eliminar la anterior
+    // Si hay una nueva imagen y existía una anterior, intentar eliminar la anterior
     if (req.body.foto && oldCategory.foto && oldCategory.foto !== req.body.foto) {
-      await ImageService.deleteImage(oldCategory.foto);
+      try {
+        await ImageService.deleteImage(oldCategory.foto);
+      } catch (deleteError) {
+        console.warn('⚠️ Warning deleting old image:', deleteError);
+        // No bloquear la actualización si falla la eliminación de imagen anterior
+      }
     }
 
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
@@ -105,9 +110,14 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
       return next(new AppError('Category not found', 404));
     }
 
-    // Eliminar imagen de Cloudinary si existe
+    // Eliminar imagen si existe
     if (category.foto) {
-      await ImageService.deleteImage(category.foto);
+      try {
+        await ImageService.deleteImage(category.foto);
+      } catch (deleteError) {
+        console.warn('⚠️ Warning deleting category image:', deleteError);
+        // Continuar con la eliminación incluso si falla la imagen
+      }
     }
 
     await Category.findByIdAndDelete(req.params.id);

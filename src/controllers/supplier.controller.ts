@@ -73,9 +73,14 @@ export const updateSupplier = async (req: Request, res: Response, next: NextFunc
       return next(new AppError('Supplier not found', 404));
     }
 
-    // Si hay una nueva imagen y existía una anterior, eliminar la anterior
+    // Si hay una nueva imagen y existía una anterior, intentar eliminar la anterior
     if (req.body.foto && oldSupplier.foto && oldSupplier.foto !== req.body.foto) {
-      await ImageService.deleteImage(oldSupplier.foto);
+      try {
+        await ImageService.deleteImage(oldSupplier.foto);
+      } catch (deleteError) {
+        console.warn('⚠️ Warning deleting old image:', deleteError);
+        // No bloquear la actualización si falla la eliminación de imagen anterior
+      }
     }
 
     const supplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, {
@@ -100,9 +105,14 @@ export const deleteSupplier = async (req: Request, res: Response, next: NextFunc
       return next(new AppError('Supplier not found', 404));
     }
 
-    // Eliminar imagen de Cloudinary si existe
+    // Eliminar imagen si existe
     if (supplier.foto) {
-      await ImageService.deleteImage(supplier.foto);
+      try {
+        await ImageService.deleteImage(supplier.foto);
+      } catch (deleteError) {
+        console.warn('⚠️ Warning deleting supplier image:', deleteError);
+        // Continuar con la eliminación incluso si falla la imagen
+      }
     }
 
     await Supplier.findByIdAndDelete(req.params.id);
