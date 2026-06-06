@@ -271,21 +271,33 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
 
 export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const oldProduct = await Product.findById(req.params.id);
+    const productId = req.params.id;
+    console.log('=== UPDATE PRODUCT START ===');
+    console.log('Product ID:', productId);
+    console.log('Request body:', JSON.stringify(req.body));
+
+    // Validar que el productId sea válido
+    if (!productId) {
+      return next(new AppError('Product ID is required', 400));
+    }
+
+    const oldProduct = await Product.findById(productId);
     
     if (!oldProduct) {
+      console.log(`❌ Product not found with ID: ${productId}`);
       return next(new AppError('Product not found', 404));
     }
 
-    console.log('=== UPDATE PRODUCT DEBUG ===');
-    console.log('Request body:', JSON.stringify(req.body));
+    console.log('✅ Old product found:', oldProduct._id);
     console.log('Old product foto:', oldProduct.foto);
     console.log('New product foto:', req.body.foto);
 
     // Si hay una nueva imagen y existía una anterior, eliminar la anterior
     if (req.body.foto && oldProduct.foto && oldProduct.foto !== req.body.foto) {
       try {
+        console.log('🗑️ Deleting old image:', oldProduct.foto);
         await ImageService.deleteImage(oldProduct.foto);
+        console.log('✅ Old image deleted');
       } catch (deleteError) {
         console.warn('⚠️ Warning deleting old image:', deleteError);
         // No bloquear la actualización si falla la eliminación de imagen anterior
@@ -300,20 +312,30 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     console.log('Parsed values:', { salePrice, purchasePrice, stock });
 
     // Actualizar datos genéricos del producto
-    const updateProductData: any = {
-      name: req.body.name,
-      description: req.body.description,
-      weight: req.body.weight,
-      expiryDate: req.body.expiryDate
-    };
-
-    // Solo actualizar si se proporcionan
+    const updateProductData: any = {};
+    
+    // Solo incluir campos que se proporcionen
+    if (req.body.name !== undefined) updateProductData.name = req.body.name;
+    if (req.body.description !== undefined) updateProductData.description = req.body.description;
+    if (req.body.weight !== undefined) updateProductData.weight = req.body.weight;
+    if (req.body.expiryDate !== undefined) updateProductData.expiryDate = req.body.expiryDate;
     if (req.body.categoryId) updateProductData.categoryId = req.body.categoryId;
     if (req.body.supplierId) updateProductData.supplierId = req.body.supplierId;
     if (req.body.foto) updateProductData.foto = req.body.foto;
 
+    console.log('Update data:', JSON.stringify(updateProductData));
+
+    // Verificar que haya algo que actualizar
+    if (Object.keys(updateProductData).length === 0) {
+      console.log('⚠️ No fields to update');
+      return res.json({
+        status: 'success',
+        data: { product: oldProduct }
+      });
+    }
+
     const product = await Product.findByIdAndUpdate(
-      req.params.id,
+      productId,
       updateProductData,
       {
         new: true,
@@ -322,7 +344,8 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     );
 
     if (!product) {
-      return next(new AppError('Failed to update product', 500));
+      console.log(`❌ Product update returned null for ID: ${productId}`);
+      return next(new AppError('Product not found after update', 404));
     }
 
     console.log('✅ Product updated:', product._id);
@@ -331,7 +354,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     if (req.body.storeId) {
       const updateData: any = {};
       
-      if (req.body.locationId) {
+      if (req.body.locationId !== undefined) {
         updateData.locationId = req.body.locationId;
       }
       if (salePrice !== undefined) {
@@ -345,20 +368,27 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       }
       
       if (Object.keys(updateData).length > 0) {
-        await ProductStore.updateOne(
-          { productId: req.params.id, storeId: req.body.storeId },
+        console.log('Updating ProductStore with data:', updateData);
+        const productStoreResult = await ProductStore.updateOne(
+          { productId: productId, storeId: req.body.storeId },
           updateData
         );
-        console.log('✅ ProductStore updated');
+        console.log('✅ ProductStore update result:', productStoreResult);
+      } else {
+        console.log('⚠️ No ProductStore fields to update');
       }
+    } else {
+      console.log('⚠️ No storeId provided, skipping ProductStore update');
     }
 
+    console.log('=== UPDATE PRODUCT SUCCESS ===');
     res.json({
       status: 'success',
       data: { product }
     });
   } catch (error) {
     console.error('❌ Error updating product:', error);
+    console.error('Error stack:', (error as any).stack);
     next(error);
   }
 };
