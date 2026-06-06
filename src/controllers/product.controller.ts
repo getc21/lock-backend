@@ -321,6 +321,10 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       }
     );
 
+    if (!product) {
+      return next(new AppError('Failed to update product', 500));
+    }
+
     console.log('✅ Product updated:', product._id);
 
     // Actualizar datos en ProductStore para la tienda actual
