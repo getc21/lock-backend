@@ -80,8 +80,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma'],
-  exposedHeaders: ['x-access-token', 'x-auth-token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control', 'Pragma', 'If-Modified-Since', 'User-Agent', 'Referer', 'Accept-Encoding', 'Accept-Language'],
+  exposedHeaders: ['x-access-token', 'x-auth-token', 'Content-Length', 'Content-Type'],
   maxAge: 86400, // 24 horas
   optionsSuccessStatus: 200
 };
@@ -93,7 +93,8 @@ app.use(cors(corsOptions));
 // Helmet deshabilitado en desarrollo (más rápido)
 if (process.env.NODE_ENV === 'production') {
   app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false
   }));
 }
 
@@ -105,6 +106,23 @@ if (process.env.NODE_ENV === 'production') {
   app.use(compression());
 }
 
+// Middleware para agregar headers CORS explícitamente
+app.use((req, res, next) => {
+  // Agregar headers CORS de forma explícita
+  res.header('Access-Control-Allow-Origin', req.get('origin') || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With, Cache-Control, Pragma, If-Modified-Since');
+  res.header('Access-Control-Expose-Headers', 'x-access-token, x-auth-token, Content-Length, Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Deshabilitar caché HTTP para evitar datos obsoletos
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -112,15 +130,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const uploadsPath = path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsPath));
 console.log(`📁 Uploads directory: ${uploadsPath}`);
-
-// Deshabilitar caché HTTP para evitar datos obsoletos
-app.use((req, res, next) => {
-  // En desarrollo Y en producción: NO cachear para evitar inconsistencias
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  next();
-});
 
 // Routes
 app.get('/health', (req, res) => {
