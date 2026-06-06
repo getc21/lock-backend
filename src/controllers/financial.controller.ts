@@ -526,26 +526,53 @@ export const getPeriodsComparison = async (req: Request, res: Response, next: Ne
       return next(new AppError('All date parameters are required for period comparison', 400));
     }
 
+    // DEBUG: Log de fechas recibidas
+    console.log('=== PERIODS COMPARISON DEBUG ===');
+    console.log('storeId:', storeId);
+    console.log('currentStartDate:', currentStartDate);
+    console.log('currentEndDate:', currentEndDate);
+    console.log('previousStartDate:', previousStartDate);
+    console.log('previousEndDate:', previousEndDate);
+
     const baseFilter: any = {};
     if (storeId) baseFilter.storeId = storeId;
+
+    // Convertir fechas correctamente (agregando el día completo)
+    const currentStart = new Date(currentStartDate as string);
+    currentStart.setHours(0, 0, 0, 0);
+    
+    const currentEnd = new Date(currentEndDate as string);
+    currentEnd.setHours(23, 59, 59, 999);
+    
+    const previousStart = new Date(previousStartDate as string);
+    previousStart.setHours(0, 0, 0, 0);
+    
+    const previousEnd = new Date(previousEndDate as string);
+    previousEnd.setHours(23, 59, 59, 999);
 
     // Datos del período actual
     const currentOrders = await Order.find({
       ...baseFilter,
       createdAt: {
-        $gte: new Date(currentStartDate as string),
-        $lte: new Date(currentEndDate as string)
+        $gte: currentStart,
+        $lte: currentEnd
       }
     });
+
+    console.log('Current period orders found:', currentOrders.length);
+    console.log('Date range:', currentStart, 'to', currentEnd);
 
     // Datos del período anterior
     const previousOrders = await Order.find({
       ...baseFilter,
       createdAt: {
-        $gte: new Date(previousStartDate as string),
-        $lte: new Date(previousEndDate as string)
+        $gte: previousStart,
+        $lte: previousEnd
       }
     });
+
+    console.log('Previous period orders found:', previousOrders.length);
+    console.log('Date range:', previousStart, 'to', previousEnd);
 
     const calculatePeriodStats = (orders: any[]) => {
       const totalSales = orders.reduce((sum, order) => sum + order.totalOrden, 0);
@@ -586,11 +613,17 @@ export const getPeriodsComparison = async (req: Request, res: Response, next: Ne
     currentOrders.forEach(order => {
       order.items.forEach((item: any) => {
         const productId = item.productId.toString();
-        const productName = item.productName || 'Producto sin nombre';
+        let productName = item.productName || 'Producto sin nombre';
+        
+        // DEBUG
+        if (!item.productName) {
+          console.log(`Item sin nombre: ID=${productId}, item=`, item);
+        }
         
         if (!productAnalysis.has(productId)) {
           productAnalysis.set(productId, {
             productName,
+            productId,
             currentSales: 0,
             currentQuantity: 0,
             previousSales: 0,
@@ -608,16 +641,23 @@ export const getPeriodsComparison = async (req: Request, res: Response, next: Ne
     previousOrders.forEach(order => {
       order.items.forEach((item: any) => {
         const productId = item.productId.toString();
-        const productName = item.productName || 'Producto sin nombre';
+        let productName = item.productName || 'Producto sin nombre';
         
         if (!productAnalysis.has(productId)) {
           productAnalysis.set(productId, {
             productName,
+            productId,
             currentSales: 0,
             currentQuantity: 0,
             previousSales: 0,
             previousQuantity: 0
           });
+        } else {
+          // Si ya existe pero sin nombre, actualizar el nombre
+          const existing = productAnalysis.get(productId);
+          if (!existing.productName || existing.productName === 'Producto sin nombre') {
+            existing.productName = productName;
+          }
         }
         
         const product = productAnalysis.get(productId);
@@ -627,13 +667,31 @@ export const getPeriodsComparison = async (req: Request, res: Response, next: Ne
     });
 
     // Convertir a array y calcular crecimiento
-    const productComparisons = Array.from(productAnalysis.values())
+    let productComparisons = Array.from(productAnalysis.values())
       .map(product => ({
         ...product,
         growth: calculatePercentageChange(product.currentSales, product.previousSales)
       }))
       .sort((a, b) => b.currentSales - a.currentSales)
       .slice(0, 10);
+
+    // Si hay productos sin nombre, hacer lookup en BD
+    const productsWithoutName = productComparisons.filter(p => !p.productName || p.productName === 'Producto sin nombre');
+    if (productsWithoutName.length > 0) {
+      console.log('Haciendo lookup para productos sin nombre:', productsWithoutName.map(p => p.productId));
+      
+      try {
+        for (const product of productsWithoutName) {
+          const dbProduct = await Product.findById(product.productId);
+          if (dbProduct) {
+            product.productName = dbProduct.name;
+            console.log(`Nombre actualizado: ${product.productId} -> ${dbProduct.name}`);
+          }
+        }
+      } catch (lookupError) {
+        console.log('Error en lookup de productos:', lookupError);
+      }
+    }
 
     res.json({
       status: 'success',

@@ -1,7 +1,8 @@
 import express from 'express';
 import * as productController from '../controllers/product.controller';
 import { authenticateToken } from '../middleware/auth';
-import { validateStoreAccessIfProvided } from '../middleware/storePermission';
+import { validateStoreAccessIfProvided, validateEmployeeProductEditRestrictions, validateEmployeeStockRestrictions } from '../middleware/storePermission';
+import { validateInventoryManagement } from '../middleware/storePermission';
 import { validateProductStoreAccess } from '../middleware/resourceStoreValidation';
 import { upload } from '../middleware/upload';
 import { processImageUpload } from '../services/image.service';
@@ -26,10 +27,11 @@ router.patch(
   upload.single('foto'),
   processImageUpload('products'),
   validateProductStoreAccess,
+  validateEmployeeProductEditRestrictions,
   productController.updateProduct
 );
 router.delete('/:id', validateProductStoreAccess, productController.deleteProduct);
-router.patch('/:id/stock', validateProductStoreAccess, productController.updateStock);
-router.post('/:id/stock', validateProductStoreAccess, productController.updateStock);
+router.patch('/:id/stock', validateProductStoreAccess, validateEmployeeStockRestrictions, productController.updateStock);
+router.post('/:id/stock', validateProductStoreAccess, validateEmployeeStockRestrictions, productController.updateStock);
 
 export default router;

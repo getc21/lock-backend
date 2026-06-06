@@ -2,6 +2,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProduct extends Document {
   name: string;
+  code?: string; // Código de barras o código único del producto
+  sku?: string; // SKU del producto
   description?: string;
   categoryId: mongoose.Types.ObjectId;
   supplierId: mongoose.Types.ObjectId;
@@ -21,6 +23,18 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: [true, 'Product name is required'],
       trim: true
+    },
+    code: {
+      type: String,
+      trim: true,
+      index: true, // Índice para búsquedas rápidas por código
+      sparse: true // Permite múltiples null values
+    },
+    sku: {
+      type: String,
+      trim: true,
+      index: true, // Índice para búsquedas rápidas por SKU
+      sparse: true // Permite múltiples null values
     },
     description: {
       type: String,
@@ -67,8 +81,10 @@ const productSchema = new Schema<IProduct>(
   }
 );
 
-// Index para búsquedas eficientes
+// Índices para búsquedas eficientes
 productSchema.index({ name: 1 });
+productSchema.index({ code: 1 }); // Búsqueda rápida por código de barras
+productSchema.index({ sku: 1 }); // Búsqueda rápida por SKU
 productSchema.index({ categoryId: 1 });
 productSchema.index({ storeId: 1 }); // Para filtrar por tienda
 

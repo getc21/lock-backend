@@ -113,20 +113,12 @@ const uploadsPath = path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsPath));
 console.log(`📁 Uploads directory: ${uploadsPath}`);
 
-// Permitir caché en GET (más rápido en desarrollo)
+// Deshabilitar caché HTTP para evitar datos obsoletos
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-  } else {
-    // En desarrollo, permitir caché corta en GET
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, max-age=30'); // 30 segundos
-    } else {
-      res.setHeader('Cache-Control', 'no-cache');
-    }
-  }
+  // En desarrollo Y en producción: NO cachear para evitar inconsistencias
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   next();
 });
 

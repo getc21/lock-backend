@@ -51,9 +51,6 @@ class ReturnsAndRefundsController {
           return;
         }
         
-        const refundAmount = item.returnQuantity * item.unitPrice;
-        totalRefund += refundAmount;
-        
         // ACTUALIZAR INVENTARIO INMEDIATAMENTE
         productStore.stock += item.returnQuantity;
         await productStore.save();
@@ -65,6 +62,48 @@ class ReturnsAndRefundsController {
           newStock: productStore.stock
         });
       }
+      
+      // 4. ACTUALIZAR LA ORDEN: reducir cantidades y recalcular total
+      const originalTotal: number = (order as any).totalOrden;
+      
+      for (const returnItem of items) {
+        const orderItem = (order as any).items.find((oi: any) => oi.productId.toString() === returnItem.productId.toString());
+        if (orderItem) {
+          // Reducir cantidad devuelta del item
+          orderItem.quantity -= returnItem.returnQuantity;
+          
+          // Si la cantidad es 0, remover el item de la orden
+          if (orderItem.quantity <= 0) {
+            (order as any).items = (order as any).items.filter((oi: any) => 
+              oi.productId.toString() !== returnItem.productId.toString()
+            );
+          }
+        }
+      }
+      
+      // Recalcular subtotal con los items restantes
+      let newSubtotal = 0;
+      for (const orderItem of (order as any).items) {
+        newSubtotal += (orderItem.price * orderItem.quantity);
+      }
+      
+      // Aplicar el mismo descuento original para obtener el nuevo total
+      const discountType: string | null = (order as any).discountType ?? null;
+      const discountValue: number = Number((order as any).discountValue) || 0;
+      let newTotal = newSubtotal;
+      if (discountType === 'percent' && discountValue > 0) {
+        newTotal = newSubtotal * (1 - discountValue / 100);
+      } else if (discountType === 'fixed' && discountValue > 0) {
+        newTotal = Math.max(0, newSubtotal - discountValue);
+      }
+      newTotal = Math.round(newTotal * 100) / 100;
+      
+      // El reembolso es exactamente lo que se cobró de más (diferencia entre lo pagado y el nuevo saldo)
+      totalRefund = Math.round((originalTotal - newTotal) * 100) / 100;
+      
+      (order as any).subtotal = newSubtotal;
+      (order as any).totalOrden = newTotal;
+      await order.save();
       
       // 3. Crear solicitud de devolución
       const returnRequest = new ReturnRequest({
@@ -87,30 +126,6 @@ class ReturnsAndRefundsController {
       });
       
       const savedReturn = await returnRequest.save();
-      
-      // 4. ACTUALIZAR LA ORDEN: reducir cantidades y recalcular total
-      for (const returnItem of items) {
-        const orderItem = (order as any).items.find((oi: any) => oi.productId.toString() === returnItem.productId.toString());
-        if (orderItem) {
-          // Reducir cantidad devuelta del item
-          orderItem.quantity -= returnItem.returnQuantity;
-          
-          // Si la cantidad es 0, remover el item de la orden
-          if (orderItem.quantity <= 0) {
-            (order as any).items = (order as any).items.filter((oi: any) => 
-              oi.productId.toString() !== returnItem.productId.toString()
-            );
-          }
-        }
-      }
-      
-      // Recalcular totalOrden
-      let newTotal = 0;
-      for (const orderItem of (order as any).items) {
-        newTotal += (orderItem.price * orderItem.quantity);
-      }
-      (order as any).totalOrden = newTotal;
-      await order.save();
       
       // 5. Registrar en auditoría
       await this.createAuditLog({

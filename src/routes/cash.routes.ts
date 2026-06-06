@@ -1,11 +1,12 @@
 import express from 'express';
 import * as cashController from '../controllers/cash.controller';
 import { authenticateToken } from '../middleware/auth';
-import { validateStoreAccessIfProvided } from '../middleware/storePermission';
+import { validateStoreAccessIfProvided, validateAdminOnly } from '../middleware/storePermission';
 
 const router = express.Router();
 
 router.use(authenticateToken);
+router.use(validateAdminOnly);
 
 router.post('/register/open', validateStoreAccessIfProvided, cashController.openCashRegister);
 router.post('/register/close/:id', validateStoreAccessIfProvided, cashController.closeCashRegister);

@@ -439,15 +439,40 @@ export const searchProduct = async (req: Request, res: Response, next: NextFunct
       return next(new AppError('Search query is required', 400));
     }
 
-    // Buscar producto por nombre o código
-    const product = await Product.findOne({
-      $or: [
-        { name: { $regex: query, $options: 'i' } }
-      ]
+    // Filtro base para productos no eliminados
+    const baseFilter = { isDeleted: false };
+
+    // Buscar producto con PRIORIDAD: código exacto > SKU > nombre
+    // 1. Intentar búsqueda EXACTA por código
+    let product = await Product.findOne({
+      ...baseFilter,
+      code: query.trim()
     })
     .populate('categoryId', 'name')
     .populate('supplierId', 'name')
     .populate('storeId', 'name');
+
+    // 2. Si no encuentra por código, buscar por SKU
+    if (!product) {
+      product = await Product.findOne({
+        ...baseFilter,
+        sku: query.trim()
+      })
+      .populate('categoryId', 'name')
+      .populate('supplierId', 'name')
+      .populate('storeId', 'name');
+    }
+
+    // 3. Si no encuentra por SKU, buscar por nombre (fallback - búsqueda parcial)
+    if (!product) {
+      product = await Product.findOne({
+        ...baseFilter,
+        name: { $regex: query, $options: 'i' }
+      })
+      .populate('categoryId', 'name')
+      .populate('supplierId', 'name')
+      .populate('storeId', 'name');
+    }
 
     if (!product) {
       return next(new AppError('Product not found', 404));

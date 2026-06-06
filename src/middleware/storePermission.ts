@@ -72,3 +72,102 @@ export const validateStoreAccessIfProvided = async (
     next(error);
   }
 };
+
+// Validar que solo admin o manager pueden hacer cambios de inventario
+export const validateInventoryManagement = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userRole = req.user?.role;
+
+  // Solo admin y manager pueden ajustar stock
+  if (userRole === 'admin' || userRole === 'manager') {
+    return next();
+  }
+
+  return next(new AppError('Solo administradores y gerentes pueden ajustar el inventario', 403));
+};
+
+// Validar restricciones de edición de productos para empleados
+// Los empleados solo pueden editar: salePrice, expiryDate
+export const validateEmployeeProductEditRestrictions = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userRole = req.user?.role;
+  const body = req.body;
+
+  // Los admins y managers no tienen restricciones
+  if (userRole === 'admin' || userRole === 'manager') {
+    return next();
+  }
+
+  // Los empleados solo pueden editar salePrice y expiryDate
+  if (userRole === 'employee') {
+    const allowedFields = ['salePrice', 'expiryDate'];
+    const providedFields = Object.keys(body).filter(
+      key => body[key] !== undefined && body[key] !== null && key !== 'storeId'
+    );
+
+    const hasRestrictedFields = providedFields.some(
+      field => !allowedFields.includes(field)
+    );
+
+    if (hasRestrictedFields) {
+      return next(
+        new AppError(
+          'Los empleados solo pueden editar el precio de venta y fecha de caducidad',
+          403
+        )
+      );
+    }
+  }
+
+  return next();
+};
+
+// Validar que solo admin puede acceder
+export const validateAdminOnly = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userRole = req.user?.role;
+
+  if (userRole === 'admin') {
+    return next();
+  }
+
+  return next(new AppError('Solo administradores pueden acceder a esta función', 403));
+};
+
+// Validar restricciones de empleados para ajuste de stock
+// Los empleados solo pueden agregar stock, no quitar
+export const validateEmployeeStockRestrictions = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userRole = req.user?.role;
+  const operation = req.body?.operation;
+
+  // Los admins y managers no tienen restricciones
+  if (userRole === 'admin' || userRole === 'manager') {
+    return next();
+  }
+
+  // Los empleados solo pueden agregar (add), no restar (subtract)
+  if (userRole === 'employee' && operation === 'subtract') {
+    return next(
+      new AppError(
+        'Los empleados solo pueden agregar stock, no pueden retirar',
+        403
+      )
+    );
+  }
+
+  return next();
+};
+

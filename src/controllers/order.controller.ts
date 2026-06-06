@@ -83,7 +83,7 @@ export const getOrder = async (req: Request, res: Response, next: NextFunction) 
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { items, customerId, storeId, paymentMethod } = req.body;
+    const { items, customerId, storeId, paymentMethod, discountType, discountValue } = req.body;
     const userId = (req as any).user?.id; // Extraer userId del token JWT
 
     if (!userId) {
@@ -113,12 +113,23 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       stockValidation[item.productId] = item.quantity;
     }
 
-    // Calcular total
-    const totalOrden = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    // Calcular subtotal y aplicar descuento
+    const subtotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+
+    let discountAmount = 0;
+    if (discountType === 'percent' && discountValue > 0) {
+      discountAmount = subtotal * (Number(discountValue) / 100);
+    } else if (discountType === 'fixed' && discountValue > 0) {
+      discountAmount = Math.min(Number(discountValue), subtotal);
+    }
+    const totalOrden = Math.max(0, subtotal - discountAmount);
 
     // PASO 1: Crear orden
     const order = await Order.create({
       orderDate: new Date(),
+      subtotal,
+      discountType: discountType || null,
+      discountValue: discountValue || 0,
       totalOrden,
       paymentMethod: paymentMethod || 'efectivo',
       customerId: customerId || null,

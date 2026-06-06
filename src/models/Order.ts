@@ -8,6 +8,9 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   orderDate: Date;
+  subtotal: number;
+  discountType?: 'percent' | 'fixed' | null;
+  discountValue?: number;
   totalOrden: number;
   paymentMethod: 'efectivo' | 'tarjeta' | 'transferencia' | 'qr' | 'otro';
   customerId?: mongoose.Types.ObjectId;
@@ -51,6 +54,21 @@ const orderSchema = new Schema<IOrder>(
     totalOrden: {
       type: Number,
       required: true,
+      min: 0
+    },
+    subtotal: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    discountType: {
+      type: String,
+      enum: ['percent', 'fixed', null],
+      default: null
+    },
+    discountValue: {
+      type: Number,
+      default: 0,
       min: 0
     },
     paymentMethod: {

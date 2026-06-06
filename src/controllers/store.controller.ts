@@ -1,13 +1,27 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { Store } from '../models/Store';
+import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
+import { AuthRequest } from '../middleware/auth';
 
-export const getAllStores = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllStores = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.query;
     const filter: any = {};
 
     if (status) filter.status = status;
+
+    const userRole = req.user?.role;
+
+    // Admins see all stores; other roles only see their assigned stores
+    if (userRole !== 'admin') {
+      const userId = req.user?.id;
+      const user = await User.findById(userId).select('stores');
+      if (!user) {
+        return next(new AppError('User not found', 404));
+      }
+      filter._id = { $in: user.stores };
+    }
 
     const stores = await Store.find(filter);
 
@@ -21,7 +35,7 @@ export const getAllStores = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const getStore = async (req: Request, res: Response, next: NextFunction) => {
+export const getStore = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const store = await Store.findById(req.params.id);
 
@@ -38,7 +52,7 @@ export const getStore = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const createStore = async (req: Request, res: Response, next: NextFunction) => {
+export const createStore = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const store = await Store.create(req.body);
 
@@ -51,7 +65,7 @@ export const createStore = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const updateStore = async (req: Request, res: Response, next: NextFunction) => {
+export const updateStore = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const store = await Store.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -71,7 +85,7 @@ export const updateStore = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const deleteStore = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteStore = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const store = await Store.findByIdAndDelete(req.params.id);
 
