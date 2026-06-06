@@ -277,9 +277,19 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       return next(new AppError('Product not found', 404));
     }
 
+    console.log('=== UPDATE PRODUCT DEBUG ===');
+    console.log('Request body:', JSON.stringify(req.body));
+    console.log('Old product foto:', oldProduct.foto);
+    console.log('New product foto:', req.body.foto);
+
     // Si hay una nueva imagen y existía una anterior, eliminar la anterior
     if (req.body.foto && oldProduct.foto && oldProduct.foto !== req.body.foto) {
-      await ImageService.deleteImage(oldProduct.foto);
+      try {
+        await ImageService.deleteImage(oldProduct.foto);
+      } catch (deleteError) {
+        console.warn('⚠️ Warning deleting old image:', deleteError);
+        // No bloquear la actualización si falla la eliminación de imagen anterior
+      }
     }
 
     // Convertir strings a números (llegan como strings en multipart)
@@ -287,23 +297,31 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     const purchasePrice = req.body.purchasePrice ? parseFloat(req.body.purchasePrice) : undefined;
     const stock = req.body.stock ? parseInt(req.body.stock) : undefined;
 
+    console.log('Parsed values:', { salePrice, purchasePrice, stock });
+
     // Actualizar datos genéricos del producto
+    const updateProductData: any = {
+      name: req.body.name,
+      description: req.body.description,
+      weight: req.body.weight,
+      expiryDate: req.body.expiryDate
+    };
+
+    // Solo actualizar si se proporcionan
+    if (req.body.categoryId) updateProductData.categoryId = req.body.categoryId;
+    if (req.body.supplierId) updateProductData.supplierId = req.body.supplierId;
+    if (req.body.foto) updateProductData.foto = req.body.foto;
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      {
-        name: req.body.name,
-        description: req.body.description,
-        categoryId: req.body.categoryId,
-        supplierId: req.body.supplierId,
-        weight: req.body.weight,
-        expiryDate: req.body.expiryDate,
-        foto: req.body.foto
-      },
+      updateProductData,
       {
         new: true,
         runValidators: true
       }
     );
+
+    console.log('✅ Product updated:', product._id);
 
     // Actualizar datos en ProductStore para la tienda actual
     if (req.body.storeId) {
@@ -327,6 +345,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
           { productId: req.params.id, storeId: req.body.storeId },
           updateData
         );
+        console.log('✅ ProductStore updated');
       }
     }
 
@@ -335,6 +354,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       data: { product }
     });
   } catch (error) {
+    console.error('❌ Error updating product:', error);
     next(error);
   }
 };
